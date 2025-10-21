@@ -1,0 +1,82 @@
+{
+  "user": {
+    "id": "9489c4d4-b30c-41df-a3d7-0062e2848343",
+    "app_metadata": {
+      "provider": "github",
+      "providers": ["github", "google"]
+    },
+    "user_metadata": {
+      "avatar_url": "https://avatars.githubusercontent.com/u/40026523?v=4",
+      "custom_claims": {
+        "hd": "chi.app"
+      },
+      "email": "nick@chi.app",
+      "email_verified": true,
+      "full_name": "Nick",
+      "iss": "https://api.github.com",
+      "name": "Nick",
+      "phone_verified": false,
+      "picture": "https://lh3.googleusercontent.com/a/ACg8ocLnQYDY5gtHFOQVfbyuNO3jqXFwSU2kJ5Br9-eHMMdbdEYEdWw=s96-c",
+      "preferred_username": "Nick-CHI",
+      "provider_id": "40026523",
+      "sub": "40026523",
+      "user_name": "Nick-CHI"
+    },
+    "aud": "authenticated",
+    "email": "nick@chi.app",
+    "phone": "",
+    "created_at": "2025-03-15T07:52:41.322101Z",
+    "confirmed_at": "2025-03-15T07:52:41.343016Z",
+    "email_confirmed_at": "2025-03-15T07:52:41.343016Z",
+    "last_sign_in_at": "2025-03-19T04:27:09.252054Z",
+    "role": "authenticated",
+    "updated_at": "2025-03-19T04:27:09.254857Z",
+    "identities": [
+      {
+        "id": "40026523",
+        "user_id": "9489c4d4-b30c-41df-a3d7-0062e2848343",
+        "identity_data": {
+          "avatar_url": "https://avatars.githubusercontent.com/u/40026523?v=4",
+          "email": "nick@chi.app",
+          "email_verified": true,
+          "full_name": "Nick",
+          "iss": "https://api.github.com",
+          "name": "Nick",
+          "phone_verified": false,
+          "preferred_username": "Nick-CHI",
+          "provider_id": "40026523",
+          "sub": "40026523",
+          "user_name": "Nick-CHI"
+        },
+        "provider": "github",
+        "created_at": "2025-03-17T17:08:47.609287Z",
+        "last_sign_in_at": "2025-03-17T17:08:47.609225Z",
+        "updated_at": "2025-03-19T04:27:09.246422Z"
+      },
+      {
+        "id": "111968180458658251203",
+        "user_id": "9489c4d4-b30c-41df-a3d7-0062e2848343",
+        "identity_data": {
+          "avatar_url": "https://lh3.googleusercontent.com/a/ACg8ocLnQYDY5gtHFOQVfbyuNO3jqXFwSU2kJ5Br9-eHMMdbdEYEdWw=s96-c",
+          "custom_claims": {
+            "hd": "chi.app"
+          },
+          "email": "nick@chi.app",
+          "email_verified": true,
+          "full_name": "Nick van der Meij",
+          "iss": "https://accounts.google.com",
+          "name": "Nick van der Meij",
+          "phone_verified": false,
+          "picture": "https://lh3.googleusercontent.com/a/ACg8ocLnQYDY5gtHFOQVfbyuNO3jqXFwSU2kJ5Br9-eHMMdbdEYEdWw=s96-c",
+          "provider_id": "111968180458658251203",
+          "sub": "111968180458658251203"
+        },
+        "provider": "google",
+        "created_at": "2025-03-15T07:52:41.336423Z",
+        "last_sign_in_at": "2025-03-15T07:52:41.336366Z",
+        "updated_at": "2025-03-19T04:03:42.867784Z"
+      }
+    ],
+    "factors": null
+  }
+}
