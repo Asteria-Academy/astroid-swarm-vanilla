@@ -29,7 +29,7 @@ class AgentLogCreate(AgentLogBase):
     pass
 
 class AgentLogResponse(AgentLogBase):
-    agent_log_id: int
+    agent_log_id: UUID
     date: datetime
 
 # Create router

@@ -1,3 +1,4 @@
+from uuid import UUID
 from fastapi import APIRouter, Request, Depends
 from pydantic import BaseModel
 from typing import List, Dict, Any
@@ -10,8 +11,8 @@ from microservice.agent_boilerplate.boilerplate.errors import (
 
 # Pydantic models for request and response
 class AgentToolBase(BaseModel):
-    agent_id: int
-    tool_id: int
+    agent_id: UUID
+    tool_id: UUID
 
 class AgentToolCreate(AgentToolBase):
     pass
@@ -124,7 +125,7 @@ async def assign_tool_to_agent(
 
 @router.get("/agent/{agent_id}/tools", response_model=List[Dict[str, Any]])
 async def get_agent_tools(
-    agent_id: int,
+    agent_id: UUID,
     request: Request, 
     supabase: Client = Depends(get_supabase_client)
 ):
@@ -195,8 +196,8 @@ async def get_agent_tools(
 
 @router.delete("/{agent_id}/{tool_id}")
 async def remove_tool_from_agent(
-    agent_id: int,
-    tool_id: int,
+    agent_id: UUID,
+    tool_id: UUID,
     request: Request, 
     supabase: Client = Depends(get_supabase_client)
 ):
