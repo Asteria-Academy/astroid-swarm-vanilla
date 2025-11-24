@@ -25,44 +25,35 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Load available LLM models from the API
 async function loadAvailableModels() {
+    const modelSelect = document.getElementById('model-name');
+    modelSelect.innerHTML = '<option value="">Loading models...</option>';
+    
     try {
-        const modelSelect = document.getElementById('model-name');
-        modelSelect.innerHTML = '<option value="">Loading models...</option>';
-        
-        console.log('Loading available LLM models...');
+        console.log('Loading available VLM models...');
         
         // Fetch available models from the API
         const response = await API.get('/get-llms');
         
-        if (response && response.available_models && response.available_models.length > 0) {
-            // Clear the select and add the models
-            modelSelect.innerHTML = '';
-            
-            response.available_models.forEach(model => {
-                const option = document.createElement('option');
-                option.value = model;
-                option.textContent = model;
-                modelSelect.appendChild(option);
-            });
-            
-            console.log(`Loaded ${response.available_models.length} models`);
-        } else {
-            // If no models returned, add some defaults
-            modelSelect.innerHTML = `
-                <option value="gpt-3.5-turbo">gpt-3.5-turbo</option>
-                <option value="gpt-4">gpt-4</option>
-                <option value="anthropic/claude-3.5-sonnet">anthropic/claude-3.5-sonnet</option>
-            `;
-            console.log('No models returned from API, using defaults');
-        }
+        // Always use the custom VLM model as specified in get_llms.py
+        const vlmModel = 'custom-vlm';
+        
+        // Clear and set the model select
+        modelSelect.innerHTML = '';
+        const option = document.createElement('option');
+        option.value = vlmModel;
+        option.textContent = 'Custom VLM (Gemma-2 + CLIP)';
+        option.selected = true; // Set as default
+        modelSelect.appendChild(option);
+        
+        console.log('Loaded VLM model:', vlmModel);
+        
     } catch (error) {
-        console.error('Error loading models:', error);
-        // Set default models in case of error
-        document.getElementById('model-name').innerHTML = `
-            <option value="gpt-3.5-turbo">gpt-3.5-turbo</option>
-            <option value="gpt-4">gpt-4</option>
-            <option value="anthropic/claude-3.5-sonnet">anthropic/claude-3.5-sonnet</option>
+        console.error('Error loading VLM model:', error);
+        // Fallback to just showing the VLM model name even if API call fails
+        modelSelect.innerHTML = `
+            <option value="custom-vlm" selected>Custom VLM (Gemma-2 + CLIP)</option>
         `;
+        Utils.showNotification('Using default VLM model. Could not verify available models from server.', 'warning');
     }
 }
 
