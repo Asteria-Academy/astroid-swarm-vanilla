@@ -1,36 +1,114 @@
-from langchain_openai import AzureOpenAIEmbeddings
 from dotenv import load_dotenv
-
 import os
+import torch
+import warnings
+
+# Suppress warnings
+warnings.filterwarnings("ignore", category=UserWarning)
+warnings.filterwarnings("ignore", category=DeprecationWarning)
+
+from transformers import AutoTokenizer, CLIPVisionModel, AutoProcessor
+import numpy as np
 
 load_dotenv()
 
 class EmbedderService:
+    """
+    Embedding service using the custom VLM's CLIP vision model for text embeddings.
+    Uses the same CLIP model from the custom VLM for consistent embeddings.
+    """
+    
     def __init__(self):
         self._init_embedding_model()
 
     def _init_embedding_model(self):
-        self.embedding_model = AzureOpenAIEmbeddings(
-            model=os.getenv("AZURE_OPENAI_MODEL", "text-embedding-3-small"),
-            api_key=os.getenv("AZURE_OPENAI_API_KEY"),
-            azure_endpoint=os.getenv("OPENAI_AZURE_EMBEDDINGS_ENDPOINT"),
-            dimensions=1536
-        )
+        """Initialize the CLIP model for embeddings."""
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.clip_model_id = "openai/clip-vit-base-patch32"
+        
+        print("Initializing CLIP model for embeddings...")
+        self.image_processor = AutoProcessor.from_pretrained(self.clip_model_id).image_processor
+        self.clip_model = CLIPVisionModel.from_pretrained(
+            self.clip_model_id, 
+            torch_dtype=torch.bfloat16
+        ).to(self.device)
+        
+        # Also load text tokenizer for potential text embedding
+        self.tokenizer = AutoTokenizer.from_pretrained(self.clip_model_id)
+        
+        self.clip_model.eval()
+        print(f"✅ CLIP embedding model ready on device: {self.device}")
 
     def embed_documents(self, texts: list[str]) -> list[list[float]]:
         """
-        Embed multiple documents (batched).
+        Embed multiple documents using CLIP text encoder.
+        
+        Args:
+            texts: List of text documents to embed
+            
+        Returns:
+            List of embedding vectors (each is a list of floats)
         """
-        return self.embedding_model.embed_documents(texts)
+        embeddings = []
+        with torch.no_grad():
+            for text in texts:
+                # Tokenize text
+                inputs = self.tokenizer(
+                    text,
+                    padding=True,
+                    truncation=True,
+                    max_length=77,
+                    return_tensors="pt"
+                )
+                inputs = {k: v.to(self.device) for k, v in inputs.items()}
+                
+                # Get text embeddings from CLIP
+                text_features = self.clip_model.get_text_features(**inputs)
+                
+                # Normalize embeddings
+                text_features = text_features / text_features.norm(dim=-1, keepdim=True)
+                
+                # Convert to list and append
+                embedding = text_features[0].cpu().numpy().tolist()
+                embeddings.append(embedding)
+        
+        return embeddings
 
     def embed_query(self, query: str) -> list[float]:
         """
-        Embed a single query.
+        Embed a single query using CLIP text encoder.
+        
+        Args:
+            query: Query text to embed
+            
+        Returns:
+            Embedding vector as a list of floats
         """
-        return self.embedding_model.embed_query(query)
+        with torch.no_grad():
+            # Tokenize query
+            inputs = self.tokenizer(
+                query,
+                padding=True,
+                truncation=True,
+                max_length=77,
+                return_tensors="pt"
+            )
+            inputs = {k: v.to(self.device) for k, v in inputs.items()}
+            
+            # Get text embeddings from CLIP
+            text_features = self.clip_model.get_text_features(**inputs)
+            
+            # Normalize embeddings
+            text_features = text_features / text_features.norm(dim=-1, keepdim=True)
+            
+            # Convert to list
+            embedding = text_features[0].cpu().numpy().tolist()
+        
+        return embedding
 
     @property
     def embedding_dim(self) -> int:
+        """Get the dimension of the embeddings."""
         return len(self.embed_query("test"))
     
 

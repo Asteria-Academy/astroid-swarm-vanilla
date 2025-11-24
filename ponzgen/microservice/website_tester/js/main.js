@@ -6,6 +6,9 @@
 // API request utility functions
 if (typeof API === 'undefined') {
     API = {
+        // JWT Secret from .env - should match the server's JWT_SECRET
+        JWT_SECRET: "XNz40SzR7jx+33ScALVyBbpNugroBT+LL1VFaywzXwIEygfZFNJtoHD/cSk+GuRz9KAmltO5ENMu9XVYsvE+6g==",
+        
         // Get the base URL from localStorage
         getBaseUrl: function() {
             return localStorage.getItem('api_url') || 'http://localhost:8080';
@@ -16,9 +19,58 @@ if (typeof API === 'undefined') {
             return this.getBaseUrl();
         },
         
-        // Get the JWT token from localStorage
+        // Parse JWT token
+        parseJwt: function(token) {
+            try {
+                const base64Url = token.split('.')[1];
+                const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                return JSON.parse(atob(base64));
+            } catch (e) {
+                return null;
+            }
+        },
+        
+        // Validate JWT token format and expiration
+        validateToken: function(token) {
+            if (!token) return false;
+            
+            try {
+                // Check if token has the correct format (header.payload.signature)
+                const parts = token.split('.');
+                if (parts.length !== 3) return false;
+                
+                // Parse the token to check expiration
+                const payload = this.parseJwt(token);
+                if (!payload) return false;
+                
+                // Check if token is expired
+                const currentTime = Math.floor(Date.now() / 1000);
+                if (payload.exp && payload.exp < currentTime) {
+                    console.error('Token has expired');
+                    return false;
+                }
+                
+                // In a production environment, you would also verify the signature here
+                // For security, this should be done on the server side
+                // The actual signature verification would require the JWT secret and a JWT library
+                
+                return true; // Token is valid
+                
+            } catch (error) {
+                console.error('Token validation error:', error);
+                return false;
+            }
+        },
+        
+        // Get the JWT token from localStorage and validate it
         getToken: function() {
-            return localStorage.getItem('jwt_token');
+            const token = localStorage.getItem('jwt_token');
+            if (!this.validateToken(token)) {
+                console.error('Invalid or expired token');
+                localStorage.removeItem('jwt_token');
+                return null;
+            }
+            return token;
         },
         
         // Check if authentication is set up

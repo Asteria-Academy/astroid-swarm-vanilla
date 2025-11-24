@@ -10,6 +10,12 @@ from typing import Dict, Any
 from uuid import UUID
 from supabase import Client
 
+# Optional import for legacy gemma_model
+try:
+    from microservice.agent_backend.services import gemma_model
+except ImportError:
+    gemma_model = None
+
 from ..boilerplate.agent_boilerplate import agent_boilerplate
 from ..boilerplate.models import AgentInput
 from ..boilerplate.errors import (
@@ -27,6 +33,73 @@ router = APIRouter(
 # Dependency to get Supabase client
 def get_supabase_client(request: Request):
     return request.app.state.supabase
+
+# --- Helper Function for Multimodal ---
+async def _maybe_handle_multimodal_and_augment(agent_input, max_new_tokens=None, model_name=None):
+    """
+    Helper: jika agent_input berisi image_path (atau image) dan prompt_text,
+    panggil VLM model dan kembalikan AgentInput yang sama tetapi dengan 'input_text' 
+    di-augment/diisi dengan caption VLM.
+    
+    Supports both the legacy gemma_model and the new custom VLM model.
+    """
+    try:
+        inp_dict = agent_input.dict() if hasattr(agent_input, "dict") else dict(agent_input)
+    except Exception:
+        # fallback very defensive conversion
+        inp_dict = {k: getattr(agent_input, k) for k in dir(agent_input) if not k.startswith("_")}
+    
+    # cari kemungkinan lokasi image & prompt
+    # Note: Logic pengecekan ini disesuaikan dengan struktur AgentInput yang mungkin bersarang
+    image_path = inp_dict.get("image_path") or inp_dict.get("image") or (inp_dict.get("input") or {}).get("image_path") if isinstance(inp_dict.get("input"), dict) else None
+    prompt_text = inp_dict.get("prompt_text") or inp_dict.get("prompt") or (inp_dict.get("input") or {}).get("prompt_text") if isinstance(inp_dict.get("input"), dict) else None
+
+    if not image_path:
+        return agent_input  # nothing to do
+
+    # gunakan prompt_text jika ada, kalau tidak gunakan existing text (input_text)
+    vlm_prompt = prompt_text or inp_dict.get("input_text") or (inp_dict.get("input") or {}).get("text")
+
+    if not vlm_prompt:
+        # jika tidak ada prompt untuk VLM, kita gunakan fallback sederhana
+        vlm_prompt = "Tolong jelaskan gambar ini secara singkat."
+
+    try:
+        # Use custom VLM if model_name is "custom-vlm", otherwise use legacy gemma_model
+        if model_name and model_name.lower() == "custom-vlm":
+            from microservice.agent_boilerplate.boilerplate.utils.custom_vlm_model import get_custom_vlm_model
+            vlm = get_custom_vlm_model()
+            caption = vlm.invoke_with_image(image_path, vlm_prompt, max_new_tokens=max_new_tokens or 64)
+        elif gemma_model is not None:
+            # Fallback to legacy gemma_model if available
+            caption = gemma_model.generate_from_image(vlm_prompt, image_path, max_new_tokens=max_new_tokens or 64)
+        else:
+            # If no VLM available, use custom VLM as default
+            from microservice.agent_boilerplate.boilerplate.utils.custom_vlm_model import get_custom_vlm_model
+            vlm = get_custom_vlm_model()
+            caption = vlm.invoke_with_image(image_path, vlm_prompt, max_new_tokens=max_new_tokens or 64)
+    except FileNotFoundError as e:
+        raise BadRequestError(str(e))
+    except Exception as e:
+        raise InternalServerError(f"VLM inference error: {str(e)}")
+
+    # augmentasikan input_text: gabungkan caption ke existing text agar agent tetap menerima konteks text
+    existing_text = inp_dict.get("input_text") or (inp_dict.get("input") or {}).get("text") or ""
+    
+    # Format penggabungan teks
+    if existing_text:
+        merged_text = existing_text + "\n\n[Image description]: " + caption
+    else:
+        merged_text = caption
+
+    # simpan ke field input_text (umum) atau ke input.text jika struktur duluan
+    inp_dict["input_text"] = merged_text
+    if isinstance(inp_dict.get("input"), dict):
+        inp_dict["input"]["text"] = merged_text
+
+    # kembalikan kembali ke tipe AgentInput
+    # Menggunakan parse_obj atau konstruktor tergantung versi Pydantic, di sini asumsi parse_obj/konstruktor standar
+    return AgentInput.parse_obj(inp_dict)
 
 
 @router.post("/{agent_id}/invoke", response_model=Dict[str, Any])
@@ -185,6 +258,12 @@ async def invoke_agent(
         
         # Invoke the agent
         try:
+            # --- multimodal handling: jika request punya image -> panggil VLM lokal dan augment input_text ---
+            # Ambil optional max_new_tokens dari agent_input jika tersedia
+            max_new_tokens = getattr(agent_input, "max_new_tokens", None) or (getattr(agent_input, "input", {}) or {}).get("max_new_tokens", None)
+            model_name = agent_input.metadata.model_name if hasattr(agent_input, "metadata") and hasattr(agent_input.metadata, "model_name") else None
+            agent_input = await _maybe_handle_multimodal_and_augment(agent_input, max_new_tokens=max_new_tokens, model_name=model_name)
+
             response = await agent_boilerplate.invoke_agent(
                 agent_id=agent_id,
                 agent_input=agent_input,
@@ -356,15 +435,24 @@ async def invoke_agent_stream(
                     }
                 )
         
-        # Invoke the agent
-        return StreamingResponse(
-            agent_boilerplate.invoke_agent_stream(
-                agent_id=agent_id,
-                agent_input=agent_input,
-                agent_config=agent_config
-            ),
-            media_type="text/event-stream"
-        )
+        # Invoke the agent (streaming)
+        # If multimodal: generate caption first then stream the regular pipeline
+        try:
+            # handle multimodal augmentation before streaming
+            max_new_tokens = getattr(agent_input, "max_new_tokens", None) or (getattr(agent_input, "input", {}) or {}).get("max_new_tokens", None)
+            model_name = agent_input.metadata.model_name if hasattr(agent_input, "metadata") and hasattr(agent_input.metadata, "model_name") else None
+            agent_input = await _maybe_handle_multimodal_and_augment(agent_input, max_new_tokens=max_new_tokens, model_name=model_name)
+
+            return StreamingResponse(
+                agent_boilerplate.invoke_agent_stream(
+                    agent_id=agent_id,
+                    agent_input=agent_input,
+                    agent_config=agent_config
+                ),
+                media_type="text/event-stream"
+            )
+        except Exception as e:
+            raise InternalServerError(f"Unexpected error while streaming: {str(e)}")
     
     except (BadRequestError, NotFoundError, ForbiddenError, InternalServerError) as e:
         # Re-raise known errors

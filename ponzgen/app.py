@@ -4,21 +4,29 @@ Combined Agent API and Boilerplate Service
 This application combines the functionality of both the agent backend and agent boilerplate microservices.
 """
 
-from fastapi import FastAPI, Request, HTTPException
+# Suppress warnings
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning, module="torchvision")
+warnings.filterwarnings("ignore", category=DeprecationWarning)
+warnings.filterwarnings("ignore", message=".*torch_dtype.*")
+warnings.filterwarnings("ignore", message=".*use_fast.*")
+
+from fastapi import FastAPI, Request, HTTPException, UploadFile, File, Form, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, StreamingResponse
 from fastapi.exceptions import RequestValidationError
 from pydantic import ValidationError as PydanticValidationError
 import logging
 import os
 import sys
 import json
+import uuid  # Added for unique filename generation
+import shutil # Added for saving uploaded files
 import subprocess
 from dotenv import load_dotenv
 from supabase import create_client, Client
 from pathlib import Path
-from utils.logflare_utils import logflare_logger
 
 # Import error handling from boilerplate
 from microservice.agent_boilerplate.boilerplate.errors import (
@@ -40,6 +48,17 @@ from microservice.agent_backend.routes.roles import router as roles_router, init
 # Import routes from agent_boilerplate microservice
 from microservice.agent_boilerplate.routes.agent_invoke import router as agent_invoke_router
 from microservice.agent_boilerplate.routes.agent_api import router as agent_api_router
+
+# Import schemas and services for the new endpoint override
+# Note: You may need to ensure these are exported correctly from your microservice modules
+try:
+    from microservice.agent_boilerplate.schemas import AgentInput
+    from microservice.agent_boilerplate.services import agent_boilerplate
+    from microservice.agent_boilerplate.utils import _maybe_handle_multimodal_and_augment
+    from microservice.agent_boilerplate.dependencies import get_supabase_client
+except ImportError:
+    # Fallback/Placeholder if imports are structurally different in your project
+    logging.warning("Could not import agent_boilerplate specifics (AgentInput, services). The overridden endpoint might fail without them.")
 
 # Import routes from mcp_tools microservice
 from microservice.mcp_tools.routes.mcp_tools import router as mcp_tools_router
@@ -69,16 +88,9 @@ sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "micros
 # Load environment variables from .env file
 load_dotenv()
 
-# Configure logging
-import logging
-from utils.logflare_utils import logflare_logger
-
 # Set up basic logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-# Add Logflare handler
-logflare_logger.setup_logflare_handler()
 
 # Load Supabase credentials
 SUPABASE_URL = os.getenv("SUPABASE_URL", "https://your-project.supabase.co")
@@ -99,7 +111,6 @@ app = FastAPI(
     trust_remote_host=True
 )
 
-
 # Store Supabase client in app state
 app.state.supabase = supabase
 
@@ -107,7 +118,6 @@ app.state.supabase = supabase
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # Allow all origins
-    # allow_origins=["http://localhost:8008", "http://127.0.0.1:8008"],  # Allow all origins
     allow_credentials=True,
     allow_methods=["*"],  # Allow all methods
     allow_headers=["*"],  # Allow all headers
@@ -139,6 +149,101 @@ ROUTERS = [
 
 for router in ROUTERS:
     app.include_router(router)
+
+# --- Custom Endpoint Override for Multimodal Invocation ---
+@app.post("/agent-invoke/{agent_id}/invoke-stream", tags=["Agent Invoke"], response_class=StreamingResponse)
+async def invoke_agent_stream(
+    agent_id: str,
+    request: Request,
+    image: UploadFile = File(None),
+    data: str = Form(...),
+    # Using app.state.supabase via dependency if available, or direct lookup
+    # supabase: Client = Depends(get_supabase_client) 
+):
+    try:
+        # Parse the JSON data
+        # Check if AgentInput is available (imported successfully)
+        if 'AgentInput' in globals():
+            agent_input = AgentInput.parse_raw(data)
+        else:
+            # Fallback mechanism if schema import failed
+            from types import SimpleNamespace
+            agent_input_data = json.loads(data)
+            agent_input = SimpleNamespace(**agent_input_data)
+            # Handle metadata nesting
+            if hasattr(agent_input, 'metadata') and isinstance(agent_input.metadata, dict):
+                agent_input.metadata = SimpleNamespace(**agent_input.metadata)
+
+        # Handle image upload if present
+        if image:
+            # Create uploads directory if it doesn't exist
+            upload_dir = "uploads"
+            os.makedirs(upload_dir, exist_ok=True)
+            
+            # Save the uploaded file
+            file_path = os.path.join(upload_dir, f"{uuid.uuid4()}_{image.filename}")
+            with open(file_path, "wb") as buffer:
+                shutil.copyfileobj(image.file, buffer)
+            
+            # Update the agent input with the image path
+            if not hasattr(agent_input, 'input'):
+                agent_input.input = {}
+            
+            if isinstance(agent_input.input, dict):
+                agent_input.input['image_path'] = file_path
+            else:
+                setattr(agent_input.input, 'image_path', file_path)
+        
+        # Get configuration
+        agent_config = None
+        if hasattr(agent_input, 'agent_config') and agent_input.agent_config:
+            agent_config = agent_input.agent_config
+        
+        # Handle multimodal logic
+        if '_maybe_handle_multimodal_and_augment' in globals():
+            model_name = None
+            if hasattr(agent_input, "metadata"):
+                # Handle if metadata is a dict or object
+                if isinstance(agent_input.metadata, dict):
+                    model_name = agent_input.metadata.get("model_name")
+                else:
+                    model_name = getattr(agent_input.metadata, "model_name", None)
+            
+            # Determine max_new_tokens
+            max_new_tokens = getattr(agent_input, "max_new_tokens", None)
+            if not max_new_tokens:
+                # Check nested input dict
+                if hasattr(agent_input, "input"):
+                    if isinstance(agent_input.input, dict):
+                        max_new_tokens = agent_input.input.get("max_new_tokens")
+                    else:
+                        max_new_tokens = getattr(agent_input.input, "max_new_tokens", None)
+            
+            agent_input = await _maybe_handle_multimodal_and_augment(
+                agent_input, 
+                max_new_tokens=max_new_tokens, 
+                model_name=model_name
+            )
+        
+        # Invoke the agent
+        if 'agent_boilerplate' in globals():
+            return StreamingResponse(
+                agent_boilerplate.invoke_agent_stream(
+                    agent_id=agent_id,
+                    agent_input=agent_input,
+                    agent_config=agent_config
+                ),
+                media_type="text/event-stream"
+            )
+        else:
+             raise HTTPException(status_code=500, detail="Backend service 'agent_boilerplate' not found/imported.")
+    
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=400, detail="Invalid JSON data")
+    except Exception as e:
+        logger.error(f"Error in invoke_agent_stream: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 # Public endpoints
 @app.get("/public", tags=["public"])
@@ -237,15 +342,9 @@ def get_user_info(request: Request):
 async def list_models():
     """
     Get a list of all available language models.
+    Only returns the custom VLM model.
     """
-    try:
-        content = (BASE_DIR / "config" / "openrouter_llm_list.json").read_text()
-        data = json.loads(content)
-    except Exception as e:
-        logger.warning("Unable to load models file: %s; using defaults", e)
-        data = {"available_models": DEFAULT_MODELS}
-    models = sorted(data.get("available_models", DEFAULT_MODELS))
-    return {"available_models": models}
+    return {"available_models": ["custom-vlm"]}
 
 # Startup event: initialize roles and refresh tools
 @app.on_event("startup")
@@ -318,14 +417,12 @@ async def general_exception_handler(request: Request, exc: Exception):
         content=error.detail
     )
 
-
-
 if __name__ == "__main__":
     # Test logging
-    logflare_logger.log_event("application_startup", {
-        "message": "Application starting up",
-        "environment": os.getenv("ENVIRONMENT", "development")
-    })
+    # logflare_logger.log_event("application_startup", {
+    #     "message": "Application starting up",
+    #     "environment": os.getenv("ENVIRONMENT", "development")
+    # })
     
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8080)
