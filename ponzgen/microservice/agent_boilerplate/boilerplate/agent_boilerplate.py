@@ -95,7 +95,7 @@ class AgentBoilerplate:
         context = str(agent_input.input.context).strip()
         
         # Get agent style directly from agent_input
-        agent_style_1 = str(agent_config["agent_style"])
+        agent_style_1 = str(agent_config.get("agent_style", ""))
         agent_style_2 = str(agent_input.metadata.agent_style).strip()
 
         # Construct the final message with all components
@@ -451,7 +451,7 @@ class AgentBoilerplate:
                 elif kind == "on_tool_start":
                     tool_input = event.get('data', {}).get('input')
                     tool_data = {
-                        "tool_name": event_name,
+                      "tool_name": event_name,
                         "status": f"Start using MCP: {event_name}",
                         "is_start": 1,
                         "input": tool_input

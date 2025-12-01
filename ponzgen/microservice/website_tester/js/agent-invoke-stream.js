@@ -16,27 +16,27 @@ function getInvokeApiUrl() {
 }
 
 // Initialize the page
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     // Load agents for the dropdown
     loadAgentsForDropdown();
-    
+
     // Load available LLM models
     loadAvailableModels();
-    
+
     // Event listeners
     document.getElementById('agent-select').addEventListener('change', updateAgentSelection);
     document.getElementById('get-agent-info').addEventListener('click', getAgentInfo);
-    
+
     // Updated: invokeAgentStream handles both text and images
     document.getElementById('invoke-agent').addEventListener('click', invokeAgentStream);
-    
+
     document.getElementById('clear-response').addEventListener('click', clearResponse);
-    document.getElementById('update-settings').addEventListener('click', function() {
+    document.getElementById('update-settings').addEventListener('click', function () {
         Utils.showNotification('Settings updated', 'success');
     });
-    
+
     // Add event listener for Enter key in the message input
-    document.getElementById('agent-message').addEventListener('keypress', function(e) {
+    document.getElementById('agent-message').addEventListener('keypress', function (e) {
         if (e.key === 'Enter') {
             e.preventDefault();
             invokeAgentStream();
@@ -56,19 +56,19 @@ function handleImageUpload(event) {
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = function(e) {
+    reader.onload = function (e) {
         selectedImage = {
             data: e.target.result, // Base64 string
             name: file.name,
             type: file.type
         };
-        
+
         // Show preview in the UI
         document.getElementById('preview-image').src = e.target.result;
         document.getElementById('image-preview').style.display = 'block';
     };
     reader.readAsDataURL(file);
-    
+
     // Reset the input to allow selecting the same file again if needed
     event.target.value = '';
 }
@@ -83,58 +83,40 @@ function removeSelectedImage() {
 
 // ---------------------------------------------------------
 
-// Load available LLM models from the API
+// Load available LLM models
 async function loadAvailableModels() {
     const modelSelect = document.getElementById('model-name');
-    modelSelect.innerHTML = '<option value="">Loading VLM model...</option>';
-    
-    try {
-        console.log('Loading available VLM model...');
-        
-        // Always use the custom VLM model as specified in get_llms.py
-        const vlmModel = 'custom-vlm';
-        
-        // Clear and set the model select
-        modelSelect.innerHTML = '';
-        const option = document.createElement('option');
-        option.value = vlmModel;
-        option.textContent = 'Custom VLM (Gemma-2 + CLIP)';
-        option.selected = true; // Set as default
-        modelSelect.appendChild(option);
-        
-        console.log('Loaded VLM model:', vlmModel);
-        
-    } catch (error) {
-        console.error('Error loading VLM model:', error);
-        // Fallback to just showing the VLM model name even if API call fails
-        modelSelect.innerHTML = `
-            <option value="custom-vlm" selected>Custom VLM (Gemma-2 + CLIP)</option>
-        `;
-        Utils.showNotification('Using default VLM model. Could not verify available models from server.', 'warning');
-    }
+
+    // Directly set the Custom VLM model as the only option
+    modelSelect.innerHTML = `
+        <option value="moondream" selected>Moondream2 (Fast & Lightweight)</option>
+        <option value="legacy-vlm">Legacy Custom VLM (Gemma-2 + CLIP)</option>
+    `;
+
+    console.log('Set default VLM model: custom-vlm');
 }
 
 // Load agents for the dropdown
 async function loadAgentsForDropdown() {
     try {
         console.log('Loading agents for dropdown...');
-        
+
         // Use the API utility for making the request with proper authentication
         const agents = await API.get('/agents');
-        
+
         if (agents.length === 0) {
             document.getElementById('agent-select').innerHTML = '<option value="">No agents available</option>';
             return;
         }
-        
+
         let options = '<option value="">Select an agent</option>';
-        
+
         agents.forEach(agent => {
             options += `<option value="${agent.agent_id}">${agent.agent_name}</option>`;
         });
-        
+
         document.getElementById('agent-select').innerHTML = options;
-        
+
     } catch (error) {
         Utils.showNotification(`Error loading agents: ${error.detail || error.message || 'Unknown error'}`, 'danger');
         document.getElementById('agent-select').innerHTML = '<option value="">Error loading agents</option>';
@@ -144,7 +126,7 @@ async function loadAgentsForDropdown() {
 // Update agent selection when agent is selected
 function updateAgentSelection() {
     const select = document.getElementById('agent-select');
-    
+
     if (select.value) {
         // Get agent details when an agent is selected
         getAgentDetails(select.value);
@@ -161,16 +143,16 @@ async function getAgentDetails(agentId) {
         Utils.showNotification('Please select an agent first', 'warning');
         return;
     }
-    
+
     try {
         Utils.showLoading('agent-info-container');
-        
+
         // Use the API utility for making the request with proper authentication
         const agentDetails = await API.get(`/agents/${agentId}`);
-        
+
         // Store agent details globally for use in invoke function
         currentAgentDetails = agentDetails;
-        
+
         // Display agent details
         let infoHtml = `
             <div class="alert alert-info">
@@ -185,7 +167,7 @@ async function getAgentDetails(agentId) {
                 <p><strong>Tools:</strong> ${agentDetails.tools ? agentDetails.tools.length : 0} tools available</p>
             </div>
         `;
-        
+
         // Add tool details if available
         if (agentDetails.tool_details && agentDetails.tool_details.length > 0) {
             infoHtml += '<h6 class="mt-3">Tool Details:</h6><ul class="list-group">';
@@ -198,9 +180,9 @@ async function getAgentDetails(agentId) {
             });
             infoHtml += '</ul>';
         }
-        
+
         Utils.hideLoading('agent-info-container', infoHtml);
-        
+
     } catch (error) {
         Utils.hideLoading('agent-info-container', `
             <div class="alert alert-danger">
@@ -218,7 +200,7 @@ async function getAgentInfo() {
         Utils.showNotification('Please select an agent first', 'warning');
         return;
     }
-    
+
     // If we already have the agent details, just display them again
     if (currentAgentDetails) {
         let infoHtml = `
@@ -256,24 +238,24 @@ let conversationHistory = [];
 async function invokeAgentStream() {
     const select = document.getElementById('agent-select');
     const agentId = select.value;
-    
+
     if (!agentId) {
         Utils.showNotification('Please select an agent first', 'warning');
         return;
     }
-    
+
     const messageInput = document.getElementById('agent-message');
     const message = messageInput.value.trim();
-    
+
     // Require either a message OR an image
     if (!message && !selectedImage) {
         Utils.showNotification('Please enter a message or select an image', 'warning');
         return;
     }
-    
+
     // Clear the input field
     messageInput.value = '';
-    
+
     // If we don't have agent details, get them first
     if (!currentAgentDetails) {
         try {
@@ -283,13 +265,13 @@ async function invokeAgentStream() {
             return;
         }
     }
-    
+
     // Close any existing EventSource
     if (eventSource) {
         eventSource.close();
         eventSource = null;
     }
-    
+
     // Add user message to the chat (Pass image data if available)
     addMessageToChat('user', message, 'normal', selectedImage ? selectedImage.data : null);
 
@@ -299,11 +281,11 @@ async function invokeAgentStream() {
         threadId = "1";
         document.getElementById('thread-id').value = threadId;
     }
-    
+
     // Prepare the JSON payload structure
     const requestPayload = {
         input: {
-            text: message,  // Changed from 'messages' to 'text'
+            messages: message,  // Changed back to 'messages' to match AgentInputMessage schema
             image_path: selectedImage ? "temp_upload.jpg" : undefined, // Will be replaced by backend
             context: document.getElementById('agent-context').value
         },
@@ -328,21 +310,23 @@ async function invokeAgentStream() {
         method: 'POST',
         headers: {
             'Accept': 'text/event-stream',
-            ...API.getHeaders() // Auth headers
+            ...API.getHeaders(false) // Auth headers, false = no Content-Type (let browser set multipart)
         }
     };
 
+    // --- ALWAYS USE MULTIPART/FORM-DATA ---
+    // The backend endpoint expects 'data' as a Form field and 'image' as an optional File.
+    // We must use FormData even for text-only requests to satisfy the backend signature.
+
+    console.log(`Invoking agent for agent ID: ${agentId}`);
+
+    const formData = new FormData();
+
+    // Append the JSON structure as a string under the key 'data'
+    formData.append('data', JSON.stringify(requestPayload));
+
     if (selectedImage) {
-        // --- MULTIPART/FORM-DATA STRATEGY (Image + JSON) ---
-        console.log(`Invoking agent with IMAGE for agent ID: ${agentId}`);
-        
-        const formData = new FormData();
-        
-        // Append the JSON structure as a string under the key 'data'
-        formData.append('data', JSON.stringify(requestPayload));
-        
         // Convert the Base64 image data to a Blob and append it
-        // We assume selectedImage.data is a Data URL: "data:image/png;base64,..."
         try {
             const fetchRes = await fetch(selectedImage.data);
             const blob = await fetchRes.blob();
@@ -353,97 +337,90 @@ async function invokeAgentStream() {
             return;
         }
 
-        fetchOptions.body = formData;
-        // NOTE: Do NOT set 'Content-Type': 'application/json' or 'multipart/form-data'.
-        // The browser automatically sets the correct Content-Type with boundary for FormData.
-        
         // Clear selected image UI after sending
         removeSelectedImage();
-        
-    } else {
-        // --- JSON STRATEGY (Text Only) ---
-        console.log(`Invoking agent with JSON for agent ID: ${agentId}`);
-        
-        fetchOptions.headers['Content-Type'] = 'application/json';
-        fetchOptions.body = JSON.stringify(requestPayload);
     }
-    
+
+    fetchOptions.body = formData;
+    // NOTE: Do NOT set 'Content-Type': 'application/json' or 'multipart/form-data'.
+    // The browser automatically sets the correct Content-Type with boundary for FormData.
+
     try {
         // Update request details panel
         document.getElementById('request-url').textContent = url.toString();
         document.getElementById('request-headers').textContent = JSON.stringify(fetchOptions.headers, null, 2);
-        
+
         if (selectedImage) {
             document.getElementById('request-body').textContent = "[Multipart FormData with Image and JSON payload]";
         } else {
             document.getElementById('request-body').textContent = JSON.stringify(requestPayload, null, 2);
         }
-        
+
         // Show status container
         document.getElementById('status-container').classList.remove('d-none');
         document.getElementById('current-status').textContent = 'Connecting...';
-        
+
         // Create agent message placeholder in the chat
         const agentMessageId = addMessageToChat('agent', '');
         const agentMessageElement = document.getElementById(agentMessageId);
-        
+
         // Create a token container inside the agent message
         const tokenContainer = document.createElement('div');
         tokenContainer.className = 'token-container';
         tokenContainer.dataset.rawContent = '';
         agentMessageElement.appendChild(tokenContainer);
-        
+
         // Reset buffering state for new message
         isBuffering = false;
         visibleContent = '';
         bufferedContent = '';
-        
+
         // Execute the fetch
         const response = await fetch(url, fetchOptions);
-        
+
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
-        
+
         // Get the response body as a ReadableStream
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         let buffer = '';
-        
+
         // Process the stream
         while (true) {
             const { done, value } = await reader.read();
-            
+
             if (done) {
                 console.log('Stream complete');
                 document.getElementById('current-status').textContent = 'Stream complete';
-                
+
                 // Add the final message to conversation history
                 conversationHistory.push({
                     role: 'agent',
                     content: tokenContainer.dataset.rawContent
                 });
-                
+
                 break;
             }
-            
+
             // Decode the chunk and add it to the buffer
             buffer += decoder.decode(value, { stream: true });
-            
+
             // Process complete events in the buffer
             let eventEnd = buffer.indexOf('\n\n');
             while (eventEnd > -1) {
                 const eventData = buffer.substring(0, eventEnd);
                 buffer = buffer.substring(eventEnd + 2);
-                
+
                 // Process the event
                 processEvent(eventData, tokenContainer);
-                
+
                 // Look for the next event
                 eventEnd = buffer.indexOf('\n\n');
             }
         }
-        
+
         // Add copy button to the final message
         if (!agentMessageElement.querySelector('.copy-button')) {
             const copyButton = document.createElement('button');
@@ -458,7 +435,7 @@ async function invokeAgentStream() {
         }
 
         Utils.showNotification('Agent invocation complete', 'success');
-        
+
     } catch (error) {
         // Add error message to the chat
         addMessageToChat('system', `Error: ${error.detail || error.message || 'Unknown error'}`, 'error');
@@ -470,18 +447,18 @@ async function invokeAgentStream() {
 // Add a message to the chat (Updated to support images and custom IDs)
 function addMessageToChat(role, content, type = 'normal', imageData = null, customId = null) {
     const chatContainer = document.getElementById('chat-container');
-    
+
     // Remove the initial placeholder if it exists
     const placeholder = chatContainer.querySelector('p.text-center.text-muted');
     if (placeholder) {
         chatContainer.removeChild(placeholder);
     }
-    
+
     // Create message element
     const messageElement = document.createElement('div');
     const messageId = customId || `message-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
     messageElement.id = messageId;
-    
+
     if (role === 'system') {
         // System messages (like errors)
         messageElement.className = 'alert alert-danger w-100 my-2';
@@ -489,13 +466,13 @@ function addMessageToChat(role, content, type = 'normal', imageData = null, cust
     } else {
         // User or agent messages
         messageElement.className = `message ${role}-message`;
-        
+
         // Add timestamp
         const timestamp = document.createElement('div');
         timestamp.className = 'message-time';
         timestamp.textContent = new Date().toLocaleTimeString();
         messageElement.appendChild(timestamp);
-        
+
         // Create message content container
         const messageContent = document.createElement('div');
         messageContent.className = 'message-content';
@@ -533,13 +510,13 @@ function addMessageToChat(role, content, type = 'normal', imageData = null, cust
             image: imageData || undefined
         });
     }
-    
+
     // Add to chat container
     chatContainer.appendChild(messageElement);
-    
+
     // Scroll to bottom
     chatContainer.scrollTop = chatContainer.scrollHeight;
-    
+
     return messageId;
 }
 
@@ -549,7 +526,7 @@ function processEvent(eventData, tokenContainer) {
     const lines = eventData.split('\n');
     let eventType = '';
     let data = '';
-    
+
     // Parse the event
     for (const line of lines) {
         if (line.startsWith('event:')) {
@@ -559,16 +536,16 @@ function processEvent(eventData, tokenContainer) {
             data = line.substring(5);
         }
     }
-    
+
     // Skip if no event type or data
     if (!eventType || !data) {
         return;
     }
-    
+
     try {
         // Parse the data as JSON
         const jsonData = JSON.parse(data);
-        
+
         // Handle different event types
         switch (eventType) {
             case 'status':
@@ -579,6 +556,14 @@ function processEvent(eventData, tokenContainer) {
                 break;
             case 'token':
                 handleTokenEvent(jsonData, tokenContainer);
+                break;
+            case 'vlm_response':
+                // Display VLM caption as a system message or part of the agent's thought
+                // For now, let's append it to the chat as a distinct block
+                const vlmContent = `\n\n**VLM Analysis:** ${jsonData.caption}\n\n`;
+                // We can append it to the token container directly so it appears before the agent's text
+                tokenContainer.dataset.rawContent = (tokenContainer.dataset.rawContent || '') + vlmContent;
+                tokenContainer.innerHTML = marked.parse(tokenContainer.dataset.rawContent);
                 break;
             default:
                 console.log(`Unknown event type: ${eventType}`, jsonData);
@@ -592,7 +577,7 @@ function processEvent(eventData, tokenContainer) {
 function handleStatusEvent(data) {
     const statusContainer = document.getElementById('current-status');
     statusContainer.textContent = data.status;
-    
+
     // If it's the final answer, add it to the response
     if (data.status === 'Agent Execution End' && data.final_answer) {
         // We don't need to do anything here since the tokens should have built up the answer
@@ -603,28 +588,28 @@ function handleStatusEvent(data) {
 // Handle tool status events
 function handleToolStatusEvent(data) {
     const toolStatusContainer = document.getElementById('tool-status-container');
-    
+
     // Create a new tool status element
     const toolStatusElement = document.createElement('div');
     toolStatusElement.className = `tool-status ${data.is_start ? 'start' : 'end'}`;
-    
+
     // Create the content
     let content = `<strong>${data.tool_name}</strong>: ${data.status}`;
-    
+
     // Add input or output if available
     if (data.input) {
         content += `<br><small>Input: ${JSON.stringify(data.input)}</small>`;
     }
-    
+
     if (data.output) {
         content += `<br><small>Output: ${data.output}</small>`;
     }
-    
+
     toolStatusElement.innerHTML = content;
-    
+
     // Add to the container
     toolStatusContainer.appendChild(toolStatusElement);
-    
+
     // Scroll to the bottom
     toolStatusContainer.scrollTop = toolStatusContainer.scrollHeight;
 }
@@ -638,13 +623,13 @@ let bufferedContent = '';
 function handleTokenEvent(data, tokenContainer) {
     // Get the raw token directly from the data
     const token = data.token;
-    
+
     // Always concatenate the token to the raw content for processing
     tokenContainer.dataset.rawContent += token;
-    
+
     // Process the content with buffering logic
     processContentWithBuffering(token, tokenContainer);
-    
+
     // Scroll the chat container to the bottom
     const chatContainer = document.getElementById('chat-container');
     chatContainer.scrollTop = chatContainer.scrollHeight;
@@ -656,22 +641,22 @@ function processContentWithBuffering(token, tokenContainer) {
     if (isBuffering) {
         // We're in buffering mode, add to buffered content
         bufferedContent += token;
-        
+
         // Check if we've reached the end marker
         if (bufferedContent.includes('!#/block#!')) {
             // We have a complete block, process it
             const blockEndIndex = bufferedContent.indexOf('!#/block#!') + '!#/block#!'.length;
             const completeBlock = bufferedContent.substring(0, blockEndIndex);
             const remainingBuffer = bufferedContent.substring(blockEndIndex);
-            
+
             // Process the complete block
             const blockContent = completeBlock.substring('!#block#!'.length, completeBlock.length - '!#/block#!'.length);
-            
+
             try {
                 // Parse and render the special content
                 const parsedContent = JSON.parse(blockContent);
                 let renderedContent = '';
-                
+
                 // Render based on content type
                 if (parsedContent.type && parsedContent.content) {
                     switch (parsedContent.type) {
@@ -706,18 +691,18 @@ function processContentWithBuffering(token, tokenContainer) {
                 } else {
                     renderedContent = `<div class="alert alert-warning">Invalid content format: missing type or content</div>`;
                 }
-                
+
                 // Add the rendered content to the visible content
                 visibleContent += renderedContent;
             } catch (error) {
                 console.error('Error processing special content:', error);
                 visibleContent += `<div class="alert alert-danger">Error processing content: ${error.message}</div>`;
             }
-            
+
             // Reset buffering state
             isBuffering = false;
             bufferedContent = remainingBuffer;
-            
+
             // Check if there's more to buffer in the remaining content
             if (bufferedContent.includes('!#block#!')) {
                 const parts = bufferedContent.split('!#block#!');
@@ -744,7 +729,7 @@ function processContentWithBuffering(token, tokenContainer) {
     } else {
         // We're not in buffering mode, check if we need to start
         const newContent = visibleContent + token;
-        
+
         if (newContent.includes('!#block#!')) {
             // Found start marker, enter buffering mode
             const parts = newContent.split('!#block#!');
@@ -756,10 +741,10 @@ function processContentWithBuffering(token, tokenContainer) {
             visibleContent = newContent;
         }
     }
-    
+
     // Update the display with visible content
     tokenContainer.innerHTML = visibleContent;
-    
+
     // Also update the parent message element if this is in a chat message
     const parentMessage = tokenContainer.closest('.message');
     if (parentMessage) {
@@ -774,11 +759,11 @@ function renderImage(content) {
     if (!content.src) {
         return '<div class="alert alert-warning">Invalid image: missing src</div>';
     }
-    
+
     const alt = content.alt || 'Image';
-    const additionalInfo = content.additional ? 
+    const additionalInfo = content.additional ?
         `<div class="mt-1 small text-muted">${JSON.stringify(content.additional)}</div>` : '';
-    
+
     return `
         <div class="my-3 text-center">
             <img src="${content.src}" alt="${alt}" class="img-fluid" style="max-width: 100%;">
@@ -793,11 +778,11 @@ function renderVideo(content) {
     if (!content.src) {
         return '<div class="alert alert-warning">Invalid video: missing src</div>';
     }
-    
+
     const alt = content.alt || 'Video';
-    const additionalInfo = content.additional ? 
+    const additionalInfo = content.additional ?
         `<div class="mt-1 small text-muted">${JSON.stringify(content.additional)}</div>` : '';
-    
+
     return `
         <div class="my-3 text-center">
             <video controls class="img-fluid" style="max-width: 100%;">
@@ -840,19 +825,19 @@ function executeScriptsInElement(element) {
     scripts.forEach(oldScript => {
         // Create a new script element
         const newScript = document.createElement('script');
-        
+
         // Copy all attributes from the old script to the new one
         Array.from(oldScript.attributes).forEach(attr => {
             newScript.setAttribute(attr.name, attr.value);
         });
-        
+
         // Copy the content of the script
         newScript.textContent = oldScript.textContent;
-        
+
         // Replace the old script with the new one to trigger execution
         oldScript.parentNode.replaceChild(newScript, oldScript);
     });
-    
+
     // Also handle onclick and other event attributes that might be in the HTML
     const elementsWithEvents = element.querySelectorAll('[onclick], [onchange], [onsubmit], [onmouseover], [onmouseout]');
     elementsWithEvents.forEach(el => {
