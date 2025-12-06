@@ -52,13 +52,13 @@ from microservice.agent_boilerplate.routes.agent_api import router as agent_api_
 # Import schemas and services for the new endpoint override
 # Note: You may need to ensure these are exported correctly from your microservice modules
 try:
-    from microservice.agent_boilerplate.schemas import AgentInput
-    from microservice.agent_boilerplate.services import agent_boilerplate
-    from microservice.agent_boilerplate.utils import _maybe_handle_multimodal_and_augment
+    from microservice.agent_boilerplate.boilerplate.models import AgentInput
+    from microservice.agent_boilerplate.boilerplate.agent_boilerplate import agent_boilerplate
+    from microservice.agent_boilerplate.boilerplate.utils.custom_vlm_model import _maybe_handle_multimodal_and_augment
     from microservice.agent_boilerplate.dependencies import get_supabase_client
-except ImportError:
+except ImportError as e:
     # Fallback/Placeholder if imports are structurally different in your project
-    logging.warning("Could not import agent_boilerplate specifics (AgentInput, services). The overridden endpoint might fail without them.")
+    logging.warning(f"Could not import agent_boilerplate specifics: {e}. The overridden endpoint might fail without them.")
 
 # Import routes from mcp_tools microservice
 from microservice.mcp_tools.routes.mcp_tools import router as mcp_tools_router
@@ -147,9 +147,6 @@ ROUTERS = [
     sendgrid_webhook_router
 ]
 
-for router in ROUTERS:
-    app.include_router(router)
-
 # --- Custom Endpoint Override for Multimodal Invocation ---
 @app.post("/agent-invoke/{agent_id}/invoke-stream", tags=["Agent Invoke"], response_class=StreamingResponse)
 async def invoke_agent_stream(
@@ -176,8 +173,9 @@ async def invoke_agent_stream(
 
         # Handle image upload if present
         if image:
-            # Create uploads directory if it doesn't exist
-            upload_dir = "uploads"
+            # Create uploads directory in temp folder to avoid triggering Live Server reloads
+            import tempfile
+            upload_dir = os.path.join(tempfile.gettempdir(), "ponzgen_uploads")
             os.makedirs(upload_dir, exist_ok=True)
             
             # Save the uploaded file
@@ -225,14 +223,43 @@ async def invoke_agent_stream(
                 model_name=model_name
             )
         
-        # Invoke the agent
+        
+        # Invoke the agent with streaming wrapper
         if 'agent_boilerplate' in globals():
-            return StreamingResponse(
-                agent_boilerplate.invoke_agent_stream(
+            async def stream_with_vlm():
+                # Check if there's an image before showing VLM status
+                image_path = None
+                if hasattr(agent_input, 'input'):
+                    if hasattr(agent_input.input, 'dict') and callable(agent_input.input.dict):
+                        input_dict = agent_input.input.dict()
+                    elif isinstance(agent_input.input, dict):
+                        input_dict = agent_input.input
+                    else:
+                        input_dict = {}
+                    image_path = input_dict.get('image_path')
+                
+                if image_path:
+                    # Yield initial status only if there's an image
+                    yield f"event: status\ndata: {json.dumps({'status': 'Analyzing image...'})}\n\n"
+                    # After VLM processing (which already happened), yield analysis complete
+                    # Extract caption from context if present
+                    if hasattr(agent_input, 'input'):
+                        context = getattr(agent_input.input, "context", "")
+                        if "[Image Description]: " in context:
+                            caption = context.split("[Image Description]: ")[1].strip()
+                            yield f"event: status\ndata: {json.dumps({'status': 'Image analyzed'})}\n\n"
+                            yield f"event: vlm_response\ndata: {json.dumps({'caption': caption})}\n\n"
+                
+                # Now stream the agent execution
+                async for chunk in agent_boilerplate.invoke_agent_stream(
                     agent_id=agent_id,
                     agent_input=agent_input,
                     agent_config=agent_config
-                ),
+                ):
+                    yield chunk
+            
+            return StreamingResponse(
+                stream_with_vlm(),
                 media_type="text/event-stream"
             )
         else:
@@ -243,6 +270,12 @@ async def invoke_agent_stream(
     except Exception as e:
         logger.error(f"Error in invoke_agent_stream: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
+for router in ROUTERS:
+    app.include_router(router)
+
+# --- Custom Endpoint Override for Multimodal Invocation ---
+
 
 
 # Public endpoints

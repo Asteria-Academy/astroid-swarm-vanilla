@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,6 +8,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="css/styles.css">
 </head>
+
 <body>
     <div class="container">
         <header class="my-4">
@@ -30,7 +32,8 @@
                         </div>
                         <div class="mb-3">
                             <label for="api-url" class="form-label">API URL</label>
-                            <input type="text" class="form-control" id="api-url" value="http://localhost:8000" placeholder="Enter API URL (port 8000)">
+                            <input type="text" class="form-control" id="api-url" value="http://localhost:8000"
+                                placeholder="Enter API URL (port 8000)">
                             <div class="form-text">Used for all API endpoints (agents, tools, invocation, etc.)</div>
                         </div>
                         <button id="save-auth" class="btn btn-primary">Save</button>
@@ -60,8 +63,9 @@
                             <pre id="auth-header" class="bg-light p-2 rounded">Not set</pre>
                         </div>
                         <div class="alert alert-info">
-                            <strong>Note:</strong> The backend is using a bypass flag for authentication. 
-                            It doesn't actually validate the JWT token, but it still requires the Authorization header to be present.
+                            <strong>Note:</strong> The backend is using a bypass flag for authentication.
+                            It doesn't actually validate the JWT token, but it still requires the Authorization header
+                            to be present.
                             Any token value will work as long as it's provided in the correct format.
                         </div>
                     </div>
@@ -74,7 +78,8 @@
                 <div class="card h-100">
                     <div class="card-body">
                         <h5 class="card-title">Agents</h5>
-                        <p class="card-text">Create, read, update, and delete agents. Add and remove tools from agents.</p>
+                        <p class="card-text">Create, read, update, and delete agents. Add and remove tools from agents.
+                        </p>
                         <a href="agents.html" class="btn btn-primary">Go to Agents</a>
                     </div>
                 </div>
@@ -88,7 +93,7 @@
                     </div>
                 </div>
             </div>
-            <div class="col-md-4 mb-4">
+            <!-- <div class="col-md-4 mb-4">
                 <div class="card h-100">
                     <div class="card-body">
                         <h5 class="card-title">Agent Logs</h5>
@@ -97,8 +102,8 @@
                     </div>
                 </div>
             </div>
-        </div>
-        <div class="row">
+        </div> -->
+            <!-- <div class="row">
             <div class="col-md-4 mb-4">
                 <div class="card h-100">
                     <div class="card-body">
@@ -107,11 +112,11 @@
                         <div class="d-flex gap-2">
                             <a href="tools-avatar.html" class="btn btn-primary">Tools Avatars</a>
                             <!-- <a href="agents-avatar.html" class="btn btn-primary">Agents Avatars</a> -->
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4 mb-4">
+        </div>
+    </div>
+    </div>
+    </div> -->
+    <!-- <div class="col-md-4 mb-4">
                 <div class="card h-100">
                     <div class="card-body">
                         <h5 class="card-title">Companies</h5>
@@ -129,8 +134,8 @@
                     </div>
                 </div>
             </div>
-        </div>
-        <div class="row">
+        </div> -->
+    <!-- <div class="row">
             <div class="col-md-4 mb-4">
                 <div class="card h-100">
                     <div class="card-body">
@@ -139,124 +144,125 @@
                         <a href="agent-invoke.html" class="btn btn-primary">Go to Agent Invoke</a>
                     </div>
                 </div>
+            </div> -->
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title">Agent Invoke Stream</h5>
+                <p class="card-text">Test invoking agents with streaming responses in real-time.</p>
+                <a href="agent-invoke-stream.html" class="btn btn-primary">Go to Agent Invoke Stream</a>
             </div>
-            <div class="col-md-4 mb-4">
-                <div class="card h-100">
-                    <div class="card-body">
-                        <h5 class="card-title">Agent Invoke Stream</h5>
-                        <p class="card-text">Test invoking agents with streaming responses in real-time.</p>
-                        <a href="agent-invoke-stream.html" class="btn btn-primary">Go to Agent Invoke Stream</a>
-                    </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title">Agent Creator</h5>
+                <p class="card-text">Create new agents with prompt.</p>
+                <a href="agent-creator.html" class="btn btn-primary">Go to Agent Creator</a>
+            </div>
+        </div>
+    </div>
+    </div>
+    <div class="row">
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Health Check</h5>
+                    <p class="card-text">Test API connectivity and diagnose CORS issues.</p>
+                    <a href="health.html" class="btn btn-primary">Go to Health Check</a>
                 </div>
             </div>
-            <div class="col-md-4 mb-4">
-                <div class="card h-100">
-                    <div class="card-body">
-                        <h5 class="card-title">Agent Creator</h5>
-                        <p class="card-text">Create new agents with prompt.</p>
-                        <a href="agent-creator.html" class="btn btn-primary">Go to Agent Creator</a>
+        </div>
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Feature Sharing</h5>
+                    <p class="card-text">Share agents and conversations with others using public links or email access.
+                    </p>
+                    <a href="feature-sharing.html" class="btn btn-primary">Go to Feature Sharing</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Avatar Management</h5>
+                    <p class="card-text">Manage and customize avatars for both tools and agents.</p>
+                    <div class="d-flex gap-2">
+                        <a href="tools-avatar.html" class="btn btn-primary">Tools Avatars</a>
+                        <!-- <a href="agents-avatar.html" class="btn btn-primary">Agents Avatars</a> -->
                     </div>
                 </div>
             </div>
         </div>
-        <div class="row">
-            <div class="col-md-4 mb-4">
-                <div class="card h-100">
-                    <div class="card-body">
-                        <h5 class="card-title">Health Check</h5>
-                        <p class="card-text">Test API connectivity and diagnose CORS issues.</p>
-                        <a href="health.html" class="btn btn-primary">Go to Health Check</a>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4 mb-4">
-                <div class="card h-100">
-                    <div class="card-body">
-                        <h5 class="card-title">Feature Sharing</h5>
-                        <p class="card-text">Share agents and conversations with others using public links or email access.</p>
-                        <a href="feature-sharing.html" class="btn btn-primary">Go to Feature Sharing</a>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4 mb-4">
-                <div class="card h-100">
-                    <div class="card-body">
-                        <h5 class="card-title">Avatar Management</h5>
-                        <p class="card-text">Manage and customize avatars for both tools and agents.</p>
-                        <div class="d-flex gap-2">
-                            <a href="tools-avatar.html" class="btn btn-primary">Tools Avatars</a>
-                            <!-- <a href="agents-avatar.html" class="btn btn-primary">Agents Avatars</a> -->
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4 mb-4">
-                <div class="card h-100">
-                    <div class="card-body">
-                        <h5 class="card-title">Chat Recommendations</h5>
-                        <p class="card-text">Get AI-powered chat recommendations and suggestions for your conversations.</p>
-                        <a href="chat-recommendation.html" class="btn btn-primary">Go to Chat Recommendations</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="row">
-            <div class="col-md-4 mb-4">
-                <div class="card h-100">
-                    <div class="card-body">
-                        <h5 class="card-title">User Info</h5>
-                        <p class="card-text">View information about the authenticated user.</p>
-                        <a href="user-info.html" class="btn btn-primary">Go to User Info</a>
-                    </div>
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Chat Recommendations</h5>
+                    <p class="card-text">Get AI-powered chat recommendations and suggestions for your conversations.</p>
+                    <a href="chat-recommendation.html" class="btn btn-primary">Go to Chat Recommendations</a>
                 </div>
             </div>
         </div>
     </div>
-    
+    <div class="row">
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">User Info</h5>
+                    <p class="card-text">View information about the authenticated user.</p>
+                    <a href="user-info.html" class="btn btn-primary">Go to User Info</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script src="js/main.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             // Load saved auth data
             const jwtToken = localStorage.getItem('jwt_token');
             const apiUrl = localStorage.getItem('api_url');
-            
+
             if (jwtToken) {
                 document.getElementById('jwt-token').value = jwtToken;
                 document.getElementById('current-token').textContent = jwtToken;
             }
-            
+
             if (apiUrl) {
                 document.getElementById('api-url').value = apiUrl;
                 document.getElementById('current-url').textContent = apiUrl;
             }
-            
+
             // Update auth header display
             updateAuthHeader();
-            
+
             // Save auth data
-            document.getElementById('save-auth').addEventListener('click', function() {
+            document.getElementById('save-auth').addEventListener('click', function () {
                 const jwtToken = document.getElementById('jwt-token').value;
                 const apiUrl = document.getElementById('api-url').value;
-                
+
                 localStorage.setItem('jwt_token', jwtToken);
                 localStorage.setItem('api_url', apiUrl);
-                
+
                 // Update debug info
                 document.getElementById('current-token').textContent = jwtToken;
                 document.getElementById('current-url').textContent = apiUrl;
                 updateAuthHeader();
-                
+
                 alert('Authentication data saved!');
             });
-            
+
             // Toggle debug info
-            document.getElementById('toggle-debug').addEventListener('click', function() {
+            document.getElementById('toggle-debug').addEventListener('click', function () {
                 const debugInfo = document.getElementById('debug-info');
                 debugInfo.style.display = debugInfo.style.display === 'none' ? 'block' : 'none';
             });
         });
-        
+
         // Update auth header display
         function updateAuthHeader() {
             const jwtToken = localStorage.getItem('jwt_token');
@@ -268,4 +274,5 @@
         }
     </script>
 </body>
+
 </html>

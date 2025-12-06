@@ -13,6 +13,7 @@ class AgentInputMessage(BaseModel):
     """Input message for the agent."""
     messages: str
     context: str = ""
+    image_path: Optional[str] = None
 
 
 class AgentInputConfig(BaseModel):

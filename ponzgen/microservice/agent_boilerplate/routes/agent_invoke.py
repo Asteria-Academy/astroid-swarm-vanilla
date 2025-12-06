@@ -6,7 +6,7 @@ This module provides routes for agent invocation.
 
 from fastapi import APIRouter, Request, Depends
 from fastapi.responses import StreamingResponse
-from typing import Dict, Any
+from typing import Dict, Any, Tuple, Optional
 from uuid import UUID
 from supabase import Client
 
@@ -35,13 +35,14 @@ def get_supabase_client(request: Request):
     return request.app.state.supabase
 
 # --- Helper Function for Multimodal ---
-async def _maybe_handle_multimodal_and_augment(agent_input, max_new_tokens=None, model_name=None):
+async def _maybe_handle_multimodal_and_augment(agent_input, max_new_tokens=None, model_name=None) -> Tuple[AgentInput, Optional[str]]:
     """
     Helper: jika agent_input berisi image_path (atau image) dan prompt_text,
     panggil VLM model dan kembalikan AgentInput yang sama tetapi dengan 'input_text' 
     di-augment/diisi dengan caption VLM.
     
-    Supports both the legacy gemma_model and the new custom VLM model.
+    Returns:
+        Tuple[AgentInput, Optional[str]]: The updated agent input and the generated caption (if any).
     """
     try:
         inp_dict = agent_input.dict() if hasattr(agent_input, "dict") else dict(agent_input)
@@ -51,19 +52,36 @@ async def _maybe_handle_multimodal_and_augment(agent_input, max_new_tokens=None,
     
     # cari kemungkinan lokasi image & prompt
     # Note: Logic pengecekan ini disesuaikan dengan struktur AgentInput yang mungkin bersarang
-    image_path = inp_dict.get("image_path") or inp_dict.get("image") or (inp_dict.get("input") or {}).get("image_path") if isinstance(inp_dict.get("input"), dict) else None
-    prompt_text = inp_dict.get("prompt_text") or inp_dict.get("prompt") or (inp_dict.get("input") or {}).get("prompt_text") if isinstance(inp_dict.get("input"), dict) else None
+    # Helper to safely get value from dict or object
+    def safe_get(obj, key, default=None):
+        if isinstance(obj, dict):
+            return obj.get(key, default)
+        return getattr(obj, key, default)
+
+    input_obj = inp_dict.get("input")
+    
+    # cari kemungkinan lokasi image & prompt
+    image_path = inp_dict.get("image_path") or inp_dict.get("image")
+    if not image_path and input_obj:
+        image_path = safe_get(input_obj, "image_path")
+
+    prompt_text = inp_dict.get("prompt_text") or inp_dict.get("prompt")
+    if not prompt_text and input_obj:
+        prompt_text = safe_get(input_obj, "prompt_text")
 
     if not image_path:
-        return agent_input  # nothing to do
+        return agent_input, None  # nothing to do
 
     # gunakan prompt_text jika ada, kalau tidak gunakan existing text (input_text)
-    vlm_prompt = prompt_text or inp_dict.get("input_text") or (inp_dict.get("input") or {}).get("text")
+    vlm_prompt = prompt_text or inp_dict.get("input_text")
+    if not vlm_prompt and input_obj:
+        vlm_prompt = safe_get(input_obj, "text") or safe_get(input_obj, "messages")
 
     if not vlm_prompt:
         # jika tidak ada prompt untuk VLM, kita gunakan fallback sederhana
         vlm_prompt = "Tolong jelaskan gambar ini secara singkat."
 
+    caption = None
     try:
         # Use custom VLM if model_name is "custom-vlm", otherwise use legacy gemma_model
         if model_name and model_name.lower() == "custom-vlm":
@@ -84,22 +102,21 @@ async def _maybe_handle_multimodal_and_augment(agent_input, max_new_tokens=None,
         raise InternalServerError(f"VLM inference error: {str(e)}")
 
     # augmentasikan input_text: gabungkan caption ke existing text agar agent tetap menerima konteks text
-    existing_text = inp_dict.get("input_text") or (inp_dict.get("input") or {}).get("text") or ""
-    
-    # Format penggabungan teks
-    if existing_text:
-        merged_text = existing_text + "\n\n[Image description]: " + caption
-    else:
-        merged_text = caption
-
-    # simpan ke field input_text (umum) atau ke input.text jika struktur duluan
-    inp_dict["input_text"] = merged_text
+    # Fix: Update 'context' instead of 'text' because agent_boilerplate reads 'context'
     if isinstance(inp_dict.get("input"), dict):
-        inp_dict["input"]["text"] = merged_text
+        current_context = inp_dict["input"].get("context", "")
+        inp_dict["input"]["context"] = f"{current_context}\n\n[Image Description]: {caption}"
+    
+    # Fix: Reset model_name to a standard LLM if it was 'custom-vlm', 
+    # because the agent execution needs a valid LLM (not the VLM itself).
+    if model_name and model_name.lower() == "custom-vlm":
+        if isinstance(inp_dict.get("metadata"), dict):
+            # You can make this configurable or default to gpt-3.5-turbo/gpt-4o
+            inp_dict["metadata"]["model_name"] = "gpt-3.5-turbo"
 
     # kembalikan kembali ke tipe AgentInput
     # Menggunakan parse_obj atau konstruktor tergantung versi Pydantic, di sini asumsi parse_obj/konstruktor standar
-    return AgentInput.parse_obj(inp_dict)
+    return AgentInput.parse_obj(inp_dict), caption
 
 
 @router.post("/{agent_id}/invoke", response_model=Dict[str, Any])
@@ -262,7 +279,9 @@ async def invoke_agent(
             # Ambil optional max_new_tokens dari agent_input jika tersedia
             max_new_tokens = getattr(agent_input, "max_new_tokens", None) or (getattr(agent_input, "input", {}) or {}).get("max_new_tokens", None)
             model_name = agent_input.metadata.model_name if hasattr(agent_input, "metadata") and hasattr(agent_input.metadata, "model_name") else None
-            agent_input = await _maybe_handle_multimodal_and_augment(agent_input, max_new_tokens=max_new_tokens, model_name=model_name)
+            
+            # Updated to unpack the tuple
+            agent_input, _ = await _maybe_handle_multimodal_and_augment(agent_input, max_new_tokens=max_new_tokens, model_name=model_name)
 
             response = await agent_boilerplate.invoke_agent(
                 agent_id=agent_id,
@@ -438,17 +457,79 @@ async def invoke_agent_stream(
         # Invoke the agent (streaming)
         # If multimodal: generate caption first then stream the regular pipeline
         try:
-            # handle multimodal augmentation before streaming
-            max_new_tokens = getattr(agent_input, "max_new_tokens", None) or (getattr(agent_input, "input", {}) or {}).get("max_new_tokens", None)
-            model_name = agent_input.metadata.model_name if hasattr(agent_input, "metadata") and hasattr(agent_input.metadata, "model_name") else None
-            agent_input = await _maybe_handle_multimodal_and_augment(agent_input, max_new_tokens=max_new_tokens, model_name=model_name)
+            print("DEBUG: invoke_agent_stream endpoint hit!")
+            
+            async def stream_with_vlm():
+                import json
+                
+                # handle multimodal augmentation before streaming
+                max_new_tokens = getattr(agent_input, "max_new_tokens", None) or (getattr(agent_input, "input", {}) or {}).get("max_new_tokens", None)
+                model_name = agent_input.metadata.model_name if hasattr(agent_input, "metadata") and hasattr(agent_input.metadata, "model_name") else None
+                
+                # Check if there's an image before showing VLM status
+                image_path = None
+                if hasattr(agent_input, 'input'):
+                    if hasattr(agent_input.input, 'dict') and callable(agent_input.input.dict):
+                        input_dict = agent_input.input.dict()
+                    else:
+                        input_dict = agent_input.input if isinstance(agent_input.input, dict) else dict(agent_input.input)
+                    image_path = input_dict.get('image_path')
+                
+                if image_path:
+                    # Yield initial status only if there's an image
+                    yield f"event: status\ndata: {json.dumps({'status': 'Analyzing image...'})}\n\n"
+                
+                # Call helper, now unpacking the tuple
+                updated_agent_input, caption = await _maybe_handle_multimodal_and_augment(agent_input, max_new_tokens=max_new_tokens, model_name=model_name)
+                
+                # Use the returned caption directly
+                if caption:
+                    # Yield the caption as a special event or just info
+                    yield f"event: status\ndata: {json.dumps({'status': 'Image analyzed'})}\n\n"
+                    
+                    # --- CRITICAL CHANGE: Stream caption as 'token' events so it shows in chat ---
+                    vlm_prefix = "**[VLM Analysis]**:"
+                    yield f"event: token\ndata: {json.dumps({'token': f'{vlm_prefix} {caption}'})}\n\n"
+                    
+                    separator = "\n\n---\n\n"
+                    yield f"event: token\ndata: {json.dumps({'token': separator})}\n\n"
+                    # --------------------------------------------------------------------------
+                    
+                    # Check if the user query is empty or just a placeholder dot
+                    input_msg = ""
+                    # Robust extraction of messages
+                    try:
+                        raw_msg = None
+                        if isinstance(agent_input.input, dict):
+                            raw_msg = agent_input.input.get('messages')
+                        else:
+                            raw_msg = getattr(agent_input.input, 'messages', None)
+                        
+                        input_msg = str(raw_msg).strip() if raw_msg is not None else ""
+                    except Exception as e:
+                        print(f"DEBUG: Error extracting input messages: {e}")
+                        input_msg = ""
+                    
+                    print(f"DEBUG: VLM Check - Input msg: '{input_msg}'")
+
+                    # If query is empty or just ".", we treat this as "Image Description Only" task
+                    if not input_msg or input_msg == "." or input_msg == "None":
+                        print("DEBUG: Empty query with image. Skipping agent execution and returning VLM caption only.")
+                        yield f"event: status\ndata: {json.dumps({'status': 'Agent Execution End', 'final_answer': caption})}\n\n"
+                        return
+
+                # Now stream the agent execution
+                print("DEBUG: Starting agent stream...")
+                async for chunk in agent_boilerplate.invoke_agent_stream(
+                    agent_id=agent_id,
+                    agent_input=updated_agent_input,
+                    agent_config=agent_config
+                ):
+                    print(f"DEBUG: Yielding chunk: {chunk[:100]}...")
+                    yield chunk
 
             return StreamingResponse(
-                agent_boilerplate.invoke_agent_stream(
-                    agent_id=agent_id,
-                    agent_input=agent_input,
-                    agent_config=agent_config
-                ),
+                stream_with_vlm(),
                 media_type="text/event-stream"
             )
         except Exception as e:
