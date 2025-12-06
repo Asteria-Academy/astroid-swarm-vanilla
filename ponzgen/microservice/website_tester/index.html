@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Tester</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+
+<body>
+    <div class="container pb-5">
+        <header class="my-5">
+            <h1 class="text-center fw-bold text-primary">Backend API Tester</h1>
+            <p class="text-center lead text-muted">Test and manage Agents, Tools, and Interactions</p>
+        </header>
+
+        <div class="row mb-5">
+            <div class="col-md-6 offset-md-3">
+                <div class="card shadow-sm border-0">
+                    <div class="card-header bg-light bg-gradient">
+                        <h5 class="mb-0"><i class="bi bi-shield-lock me-2"></i>Authentication</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="jwt-token" class="form-label text-muted small fw-bold">JWT TOKEN</label>
+                            <input type="text" class="form-control font-monospace" id="jwt-token"
+                                placeholder="Enter your JWT token">
+                            <div class="form-text">Any string works for testing (bypass enabled).</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="api-url" class="form-label text-muted small fw-bold">API URL</label>
+                            <input type="text" class="form-control font-monospace" id="api-url"
+                                value="http://localhost:8000" placeholder="http://localhost:8000">
+                        </div>
+                        <div class="d-grid">
+                            <button id="save-auth" class="btn btn-primary"><i class="bi bi-save me-2"></i>Save
+                                Configuration</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-5">
+            <div class="col-md-6 offset-md-3">
+                <div class="accordion" id="debugAccordion">
+                    <div class="accordion-item border-0 shadow-sm">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed bg-white" type="button" data-bs-toggle="collapse"
+                                data-bs-target="#debug-collapse">
+                                <i class="bi bi-bug me-2"></i>Debug Information
+                            </button>
+                        </h2>
+                        <div id="debug-collapse" class="accordion-collapse collapse" data-bs-parent="#debugAccordion">
+                            <div class="accordion-body bg-light">
+                                <div id="debug-info">
+                                    <div class="mb-2"><strong>Token:</strong> <span id="current-token"
+                                            class="font-monospace text-break">Not set</span></div>
+                                    <div class="mb-2"><strong>URL:</strong> <span id="current-url"
+                                            class="font-monospace">Not set</span></div>
+                                    <div class="mb-2"><strong>Header:</strong> <span id="auth-header"
+                                            class="font-monospace text-break">Not set</span></div>
+                                    <div class="alert alert-warning mt-3 mb-0 small"><i
+                                            class="bi bi-info-circle me-1"></i> Backend Authentication is bypassed but
+                                        header format is required.</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Navigation Cards -->
+        <div class="row g-4 justify-content-center">
+            <!-- Agents Card -->
+            <div class="col-md-4">
+                <div class="card h-100 shadow-sm transition-hover border-0">
+                    <div class="card-body text-center p-4">
+                        <div class="mb-3 text-primary">
+                            <i class="bi bi-robot display-4"></i>
+                        </div>
+                        <h3 class="card-title h4 fw-bold mb-3">Agents</h3>
+                        <p class="card-text text-muted mb-4">Create, configure, and manage intelligent agents. Assign
+                            tools and define behaviors.</p>
+                        <a href="agents.html" class="btn btn-outline-primary w-100 stretched-link">Manage Agents</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tools Card -->
+            <div class="col-md-4">
+                <div class="card h-100 shadow-sm transition-hover border-0">
+                    <div class="card-body text-center p-4">
+                        <div class="mb-3 text-success">
+                            <i class="bi bi-tools display-4"></i>
+                        </div>
+                        <h3 class="card-title h4 fw-bold mb-3">Tools</h3>
+                        <p class="card-text text-muted mb-4">Register and update tools. Define capabilities that agents
+                            can utilize.</p>
+                        <a href="tools.html" class="btn btn-outline-success w-100 stretched-link">Manage Tools</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Agent Invoke Stream Card -->
+            <div class="col-md-4">
+                <div class="card h-100 shadow-sm transition-hover border-0">
+                    <div class="card-body text-center p-4">
+                        <div class="mb-3 text-warning">
+                            <i class="bi bi-chat-dots-fill display-4"></i>
+                        </div>
+                        <h3 class="card-title h4 fw-bold mb-3">Chat Stream</h3>
+                        <p class="card-text text-muted mb-4">Test agent interactions with real-time streaming responses
+                            and multimodal inputs.</p>
+                        <a href="agent-invoke-stream.html" class="btn btn-outline-warning w-100 stretched-link">Launch
+                            Test Interface</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CSS for hover effects included inline for simplicity given the scope -->
+        <style>
+            .transition-hover {
+                transition: transform 0.2s, box-shadow 0.2s;
+            }
+
+            .transition-hover:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .15) !important;
+            }
+        </style>
+
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+        <script src="js/main.js"></script>
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                // Load saved auth data
+                const jwtToken = localStorage.getItem('jwt_token');
+                const apiUrl = localStorage.getItem('api_url');
+
+                if (jwtToken) {
+                    document.getElementById('jwt-token').value = jwtToken;
+                    document.getElementById('current-token').textContent = jwtToken;
+                }
+
+                if (apiUrl) {
+                    document.getElementById('api-url').value = apiUrl;
+                    document.getElementById('current-url').textContent = apiUrl;
+                }
+
+                // Update auth header display
+                updateAuthHeader();
+
+                // Save auth data
+                document.getElementById('save-auth').addEventListener('click', function () {
+                    const jwtToken = document.getElementById('jwt-token').value;
+                    const apiUrl = document.getElementById('api-url').value;
+
+                    localStorage.setItem('jwt_token', jwtToken);
+                    localStorage.setItem('api_url', apiUrl);
+
+                    // Update debug info
+                    document.getElementById('current-token').textContent = jwtToken;
+                    document.getElementById('current-url').textContent = apiUrl;
+                    updateAuthHeader();
+
+                    alert('Authentication data saved!');
+                });
+
+                // Toggle debug info
+                document.getElementById('toggle-debug').addEventListener('click', function () {
+                    const debugInfo = document.getElementById('debug-info');
+                    debugInfo.style.display = debugInfo.style.display === 'none' ? 'block' : 'none';
+                });
+            });
+
+            // Update auth header display
+            function updateAuthHeader() {
+                const jwtToken = localStorage.getItem('jwt_token');
+                if (jwtToken) {
+                    document.getElementById('auth-header').textContent = `Authorization: Bearer ${jwtToken}`;
+                } else {
+                    document.getElementById('auth-header').textContent = 'Not set';
+                }
+            }
+        </script>
+</body>
+
+</html>
