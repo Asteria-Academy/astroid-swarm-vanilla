@@ -224,9 +224,9 @@ async function getAgentInfo() {
 
 // Clear the chat container
 function clearResponse() {
-    document.getElementById('chat-container').innerHTML = '<p class="text-center text-muted">Start a conversation with the agent</p>';
+    document.getElementById('chat-container').innerHTML = '<div class="d-flex flex-column align-items-center justify-content-center h-100 opacity-50"><div class="icon-box bg-light text-muted mb-3 rounded-circle" style="width: 64px; height: 64px;"><i class="bi bi-chat-square-dots fs-3"></i></div><p class="text-muted">Select an agent and start the conversation.</p></div>';
     document.getElementById('tool-status-container').innerHTML = '';
-    document.getElementById('status-container').classList.add('d-none');
+    // document.getElementById('status-container').classList.add('d-none'); // Element removed in redesign
     // Reset the conversation history
     conversationHistory = [];
 }
@@ -346,18 +346,26 @@ async function invokeAgentStream() {
     // The browser automatically sets the correct Content-Type with boundary for FormData.
 
     try {
-        // Update request details panel
-        document.getElementById('request-url').textContent = url.toString();
-        document.getElementById('request-headers').textContent = JSON.stringify(fetchOptions.headers, null, 2);
+        // Update request details panel (Safeguarded)
+        const reqUrlElem = document.getElementById('request-url');
+        if (reqUrlElem) reqUrlElem.textContent = url.toString();
 
-        if (selectedImage) {
-            document.getElementById('request-body').textContent = "[Multipart FormData with Image and JSON payload]";
-        } else {
-            document.getElementById('request-body').textContent = JSON.stringify(requestPayload, null, 2);
+        const reqHeadersElem = document.getElementById('request-headers');
+        if (reqHeadersElem) reqHeadersElem.textContent = JSON.stringify(fetchOptions.headers, null, 2);
+
+        const reqBodyElem = document.getElementById('request-body');
+        if (reqBodyElem) {
+            if (selectedImage) {
+                reqBodyElem.textContent = "[Multipart FormData with Image and JSON payload]";
+            } else {
+                reqBodyElem.textContent = JSON.stringify(requestPayload, null, 2);
+            }
         }
 
-        // Show status container
-        document.getElementById('status-container').classList.remove('d-none');
+        // Show status container (Safeguarded)
+        const statusContainer = document.getElementById('status-container');
+        if (statusContainer) statusContainer.classList.remove('d-none');
+
         document.getElementById('current-status').textContent = 'Connecting...';
 
         // Create agent message placeholder in the chat
@@ -372,6 +380,7 @@ async function invokeAgentStream() {
 
         // Reset buffering state for new message
         isBuffering = false;
+        hasReceivedVlmResponse = false;
         visibleContent = '';
         bufferedContent = '';
 
@@ -555,9 +564,11 @@ function processEvent(eventData, tokenContainer) {
                 handleToolStatusEvent(jsonData);
                 break;
             case 'token':
+                if (hasReceivedVlmResponse) break;
                 handleTokenEvent(jsonData, tokenContainer);
                 break;
             case 'vlm_response':
+                hasReceivedVlmResponse = true;
                 // Display VLM caption as a system message or part of the agent's thought
                 // For now, let's append it to the chat as a distinct block
                 const vlmContent = `\n\n**VLM Analysis:** ${jsonData.caption}\n\n`;
@@ -616,6 +627,7 @@ function handleToolStatusEvent(data) {
 
 // Global variables to track buffering state
 let isBuffering = false;
+let hasReceivedVlmResponse = false;
 let visibleContent = '';
 let bufferedContent = '';
 

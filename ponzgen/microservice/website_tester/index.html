@@ -4,221 +4,259 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>API Tester</title>
+    <title>Ponzgen API Tester</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Custom CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <link rel="stylesheet" href="css/styles.css">
 </head>
 
 <body>
-    <div class="container">
-        <header class="my-4">
-            <h1 class="text-center">Backend API Tester</h1>
-            <p class="text-center lead">Test all endpoints of the Agent API</p>
+    <div class="main-wrapper">
+        <header class="app-header py-5">
+            <div class="container text-center">
+                <h1 class="display-4 fw-bold text-gradient">Ponzgen API Tester</h1>
+                <p class="lead text-muted">Microservice Management & Testing Suite</p>
+            </div>
         </header>
 
-        <div class="row mb-4">
-            <div class="col-md-6 offset-md-3">
-                <div class="card">
-                    <div class="card-header">
-                        <h5>Authentication</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="mb-3">
-                            <label for="jwt-token" class="form-label">JWT Token</label>
-                            <input type="text" class="form-control" id="jwt-token" placeholder="Enter your JWT token">
-                            <div class="form-text">
-                                For testing, you can use any string as a token since the backend is using a bypass flag.
+        <div class="container">
+            <!-- Settings Section -->
+            <div class="row mb-5 justify-content-center">
+                <div class="col-lg-8">
+                    <div class="card settings-card border-0 shadow-sm">
+                        <div class="card-body p-4">
+                            <div class="d-flex align-items-center justify-content-between mb-4">
+                                <h5 class="card-title mb-0"><i
+                                        class="bi bi-gear-wide-connected me-2 text-primary"></i>Configuration</h5>
+                                <button class="btn btn-sm btn-light-soft text-primary" type="button"
+                                    data-bs-toggle="collapse" data-bs-target="#configCollapse" aria-expanded="false">
+                                    <i class="bi bi-chevron-down"></i>
+                                </button>
+                            </div>
+
+                            <div class="collapse show" id="configCollapse">
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label for="jwt-token"
+                                            class="form-label text-xs fw-bold text-uppercase text-muted">JWT
+                                            Token</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text bg-light border-end-0"><i
+                                                    class="bi bi-key"></i></span>
+                                            <input type="text" class="form-control bg-light border-start-0 ps-0"
+                                                id="jwt-token" placeholder="Enter token value">
+                                        </div>
+                                        <div class="form-text">Any value works (bypass enabled).</div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="api-url"
+                                            class="form-label text-xs fw-bold text-uppercase text-muted">API URL</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text bg-light border-end-0"><i
+                                                    class="bi bi-globe"></i></span>
+                                            <input type="text" class="form-control bg-light border-start-0 ps-0"
+                                                id="api-url" value="http://localhost:8000"
+                                                placeholder="http://localhost:8000">
+                                        </div>
+                                        <div class="form-text">Target backend URL.</div>
+                                    </div>
+                                    <div class="col-12 text-end mt-3">
+                                        <button class="btn btn-sm btn-outline-secondary me-2" id="toggle-debug">
+                                            <i class="bi bi-bug me-1"></i> Debug Info
+                                        </button>
+                                        <button id="save-auth" class="btn btn-primary px-4">
+                                            <i class="bi bi-check-lg me-1"></i> Save Config
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Debug Info Section (Hidden by default) -->
+                                <div class="mt-4 p-3 bg-light rounded border border-light" id="debug-info"
+                                    style="display: none;">
+                                    <h6 class="text-uppercase text-xs fw-bold text-muted mb-3">Debug Diagnostics</h6>
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <span class="d-block text-xs text-muted">Current Token</span>
+                                            <code id="current-token" class="d-block text-truncate">Not set</code>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <span class="d-block text-xs text-muted">API URL</span>
+                                            <code id="current-url" class="d-block">Not set</code>
+                                        </div>
+                                        <div class="col-12">
+                                            <span class="d-block text-xs text-muted">Auth Header</span>
+                                            <code id="auth-header" class="d-block">Not set</code>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        <div class="mb-3">
-                            <label for="api-url" class="form-label">API URL</label>
-                            <input type="text" class="form-control" id="api-url" value="http://localhost:8000"
-                                placeholder="Enter API URL (port 8000)">
-                            <div class="form-text">Used for all API endpoints (agents, tools, invocation, etc.)</div>
-                        </div>
-                        <button id="save-auth" class="btn btn-primary">Save</button>
                     </div>
+                </div>
+            </div>
+
+            <!-- Tools Grid -->
+            <div class="row g-4">
+                <!-- Core Management -->
+                <div class="col-12">
+                    <h6 class="text-uppercase tracking-wide text-muted fw-bold mb-3 ms-1">Core Management</h6>
+                </div>
+
+                <div class="col-md-6 col-lg-4">
+                    <a href="agents.html" class="card-link text-decoration-none">
+                        <div class="card h-100 tool-card border-0 shadow-hover">
+                            <div class="card-body p-4">
+                                <div class="icon-box bg-primary-soft text-primary mb-3">
+                                    <i class="bi bi-robot"></i>
+                                </div>
+                                <h5 class="card-title fw-bold text-dark">Agents</h5>
+                                <p class="card-text text-muted">Establish and orchestrate autonomous agents with custom
+                                    capabilities.</p>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+
+                <div class="col-md-6 col-lg-4">
+                    <a href="tools.html" class="card-link text-decoration-none">
+                        <div class="card h-100 tool-card border-0 shadow-hover">
+                            <div class="card-body p-4">
+                                <div class="icon-box bg-success-soft text-success mb-3">
+                                    <i class="bi bi-tools"></i>
+                                </div>
+                                <h5 class="card-title fw-bold text-dark">Tools</h5>
+                                <p class="card-text text-muted">Configure executable tools and function definitions for
+                                    agents.</p>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+
+                <div class="col-md-6 col-lg-4">
+                    <a href="agent-creator.html" class="card-link text-decoration-none">
+                        <div class="card h-100 tool-card border-0 shadow-hover">
+                            <div class="card-body p-4">
+                                <div class="icon-box bg-info-soft text-info mb-3">
+                                    <i class="bi bi-magic"></i>
+                                </div>
+                                <h5 class="card-title fw-bold text-dark">Agent Creator</h5>
+                                <p class="card-text text-muted">Rapidly generate new agents using natural language
+                                    prompts.</p>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- Testing & Invocation -->
+                <div class="col-12 mt-4">
+                    <h6 class="text-uppercase tracking-wide text-muted fw-bold mb-3 ms-1">Testing & Simulation</h6>
+                </div>
+
+                <div class="col-md-6 col-lg-4">
+                    <a href="agent-invoke-stream.html" class="card-link text-decoration-none">
+                        <div class="card h-100 tool-card border-0 shadow-hover">
+                            <div class="card-body p-4">
+                                <div class="icon-box bg-warning-soft text-warning mb-3">
+                                    <i class="bi bi-chat-square-text"></i>
+                                </div>
+                                <h5 class="card-title fw-bold text-dark">Stream Invoke</h5>
+                                <p class="card-text text-muted">Real-time interaction testing with streaming token
+                                    responses.</p>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+
+                <div class="col-md-6 col-lg-4">
+                    <a href="feature-sharing.html" class="card-link text-decoration-none">
+                        <div class="card h-100 tool-card border-0 shadow-hover">
+                            <div class="card-body p-4">
+                                <div class="icon-box bg-purple-soft text-purple mb-3">
+                                    <i class="bi bi-share"></i>
+                                </div>
+                                <h5 class="card-title fw-bold text-dark">Sharing</h5>
+                                <p class="card-text text-muted">Generate and manage public access links for agents.</p>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+
+                <div class="col-md-6 col-lg-4">
+                    <a href="health.html" class="card-link text-decoration-none">
+                        <div class="card h-100 tool-card border-0 shadow-hover">
+                            <div class="card-body p-4">
+                                <div class="icon-box bg-danger-soft text-danger mb-3">
+                                    <i class="bi bi-activity"></i>
+                                </div>
+                                <h5 class="card-title fw-bold text-dark">Health Check</h5>
+                                <p class="card-text text-muted">System status, connectivity verification, and
+                                    diagnostics.</p>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- Utilities -->
+                <div class="col-12 mt-4">
+                    <h6 class="text-uppercase tracking-wide text-muted fw-bold mb-3 ms-1">Utilities</h6>
+                </div>
+
+                <div class="col-md-6 col-lg-4">
+                    <a href="chat-recommendation.html" class="card-link text-decoration-none">
+                        <div class="card h-100 tool-card border-0 shadow-hover">
+                            <div class="card-body p-4">
+                                <div class="icon-box bg-indigo-soft text-indigo mb-3">
+                                    <i class="bi bi-stars"></i>
+                                </div>
+                                <h5 class="card-title fw-bold text-dark">Recommendations</h5>
+                                <p class="card-text text-muted">AI-powered suggestions to enhance user interactions.</p>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+
+                <div class="col-md-6 col-lg-4">
+                    <a href="tools-avatar.html" class="card-link text-decoration-none">
+                        <div class="card h-100 tool-card border-0 shadow-hover">
+                            <div class="card-body p-4">
+                                <div class="icon-box bg-secondary-soft text-secondary mb-3">
+                                    <i class="bi bi-person-badge"></i>
+                                </div>
+                                <h5 class="card-title fw-bold text-dark">Avatars</h5>
+                                <p class="card-text text-muted">Personalize visual identities for tools and assistant.
+                                </p>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+
+                <div class="col-md-6 col-lg-4">
+                    <a href="user-info.html" class="card-link text-decoration-none">
+                        <div class="card h-100 tool-card border-0 shadow-hover">
+                            <div class="card-body p-4">
+                                <div class="icon-box bg-dark-soft text-dark mb-3">
+                                    <i class="bi bi-person-circle"></i>
+                                </div>
+                                <h5 class="card-title fw-bold text-dark">User Profile</h5>
+                                <p class="card-text text-muted">Account details and session information endpoint.</p>
+                            </div>
+                        </div>
+                    </a>
                 </div>
             </div>
         </div>
 
-        <div class="row mb-4">
-            <div class="col-md-6 offset-md-3">
-                <div class="card">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">Debug Information</h5>
-                        <button class="btn btn-sm btn-outline-secondary" id="toggle-debug">Show/Hide</button>
-                    </div>
-                    <div class="card-body" id="debug-info" style="display: none;">
-                        <div class="mb-3">
-                            <h6>Current JWT Token:</h6>
-                            <pre id="current-token" class="bg-light p-2 rounded">Not set</pre>
-                        </div>
-                        <div class="mb-3">
-                            <h6>Current API URL:</h6>
-                            <pre id="current-url" class="bg-light p-2 rounded">Not set</pre>
-                        </div>
-                        <div class="mb-3">
-                            <h6>Authorization Header:</h6>
-                            <pre id="auth-header" class="bg-light p-2 rounded">Not set</pre>
-                        </div>
-                        <div class="alert alert-info">
-                            <strong>Note:</strong> The backend is using a bypass flag for authentication.
-                            It doesn't actually validate the JWT token, but it still requires the Authorization header
-                            to be present.
-                            Any token value will work as long as it's provided in the correct format.
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="row">
-            <div class="col-md-4 mb-4">
-                <div class="card h-100">
-                    <div class="card-body">
-                        <h5 class="card-title">Agents</h5>
-                        <p class="card-text">Create, read, update, and delete agents. Add and remove tools from agents.
-                        </p>
-                        <a href="agents.html" class="btn btn-primary">Go to Agents</a>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4 mb-4">
-                <div class="card h-100">
-                    <div class="card-body">
-                        <h5 class="card-title">Tools</h5>
-                        <p class="card-text">Create, read, update, and delete tools that can be assigned to agents.</p>
-                        <a href="tools.html" class="btn btn-primary">Go to Tools</a>
-                    </div>
-                </div>
-            </div>
-            <!-- <div class="col-md-4 mb-4">
-                <div class="card h-100">
-                    <div class="card-body">
-                        <h5 class="card-title">Agent Logs</h5>
-                        <p class="card-text">View and manage agent logs. Set parameters for logging.</p>
-                        <a href="agent-logs.html" class="btn btn-primary">Go to Agent Logs</a>
-                    </div>
-                </div>
-            </div>
-        </div> -->
-            <!-- <div class="row">
-            <div class="col-md-4 mb-4">
-                <div class="card h-100">
-                    <div class="card-body">
-                        <h5 class="card-title">Avatar Management</h5>
-                        <p class="card-text">Manage and customize avatars for both tools and agents.</p>
-                        <div class="d-flex gap-2">
-                            <a href="tools-avatar.html" class="btn btn-primary">Tools Avatars</a>
-                            <!-- <a href="agents-avatar.html" class="btn btn-primary">Agents Avatars</a> -->
-        </div>
-    </div>
-    </div>
-    </div> -->
-    <!-- <div class="col-md-4 mb-4">
-                <div class="card h-100">
-                    <div class="card-body">
-                        <h5 class="card-title">Companies</h5>
-                        <p class="card-text">Manage companies and their users.</p>
-                        <a href="companies.html" class="btn btn-primary">Go to Companies</a>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4 mb-4">
-                <div class="card h-100">
-                    <div class="card-body">
-                        <h5 class="card-title">Roles</h5>
-                        <p class="card-text">View available roles in the system.</p>
-                        <a href="roles.html" class="btn btn-primary">Go to Roles</a>
-                    </div>
-                </div>
-            </div>
-        </div> -->
-    <!-- <div class="row">
-            <div class="col-md-4 mb-4">
-                <div class="card h-100">
-                    <div class="card-body">
-                        <h5 class="card-title">Agent Invoke</h5>
-                        <p class="card-text">Test invoking agents with custom inputs and parameters.</p>
-                        <a href="agent-invoke.html" class="btn btn-primary">Go to Agent Invoke</a>
-                    </div>
-                </div>
-            </div> -->
-    <div class="col-md-4 mb-4">
-        <div class="card h-100">
-            <div class="card-body">
-                <h5 class="card-title">Agent Invoke Stream</h5>
-                <p class="card-text">Test invoking agents with streaming responses in real-time.</p>
-                <a href="agent-invoke-stream.html" class="btn btn-primary">Go to Agent Invoke Stream</a>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-4 mb-4">
-        <div class="card h-100">
-            <div class="card-body">
-                <h5 class="card-title">Agent Creator</h5>
-                <p class="card-text">Create new agents with prompt.</p>
-                <a href="agent-creator.html" class="btn btn-primary">Go to Agent Creator</a>
-            </div>
-        </div>
-    </div>
-    </div>
-    <div class="row">
-        <div class="col-md-4 mb-4">
-            <div class="card h-100">
-                <div class="card-body">
-                    <h5 class="card-title">Health Check</h5>
-                    <p class="card-text">Test API connectivity and diagnose CORS issues.</p>
-                    <a href="health.html" class="btn btn-primary">Go to Health Check</a>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4 mb-4">
-            <div class="card h-100">
-                <div class="card-body">
-                    <h5 class="card-title">Feature Sharing</h5>
-                    <p class="card-text">Share agents and conversations with others using public links or email access.
-                    </p>
-                    <a href="feature-sharing.html" class="btn btn-primary">Go to Feature Sharing</a>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4 mb-4">
-            <div class="card h-100">
-                <div class="card-body">
-                    <h5 class="card-title">Avatar Management</h5>
-                    <p class="card-text">Manage and customize avatars for both tools and agents.</p>
-                    <div class="d-flex gap-2">
-                        <a href="tools-avatar.html" class="btn btn-primary">Tools Avatars</a>
-                        <!-- <a href="agents-avatar.html" class="btn btn-primary">Agents Avatars</a> -->
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4 mb-4">
-            <div class="card h-100">
-                <div class="card-body">
-                    <h5 class="card-title">Chat Recommendations</h5>
-                    <p class="card-text">Get AI-powered chat recommendations and suggestions for your conversations.</p>
-                    <a href="chat-recommendation.html" class="btn btn-primary">Go to Chat Recommendations</a>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="row">
-        <div class="col-md-4 mb-4">
-            <div class="card h-100">
-                <div class="card-body">
-                    <h5 class="card-title">User Info</h5>
-                    <p class="card-text">View information about the authenticated user.</p>
-                    <a href="user-info.html" class="btn btn-primary">Go to User Info</a>
-                </div>
-            </div>
-        </div>
-    </div>
+        <footer class="text-center py-5 mt-5 text-muted text-xs">
+            <p>&copy; 2025 Ponzgen Microservices. All rights reserved.</p>
+        </footer>
     </div>
 
+    <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script src="js/main.js"></script>
     <script>
@@ -253,7 +291,17 @@
                 document.getElementById('current-url').textContent = apiUrl;
                 updateAuthHeader();
 
-                alert('Authentication data saved!');
+                // Show visually pleasing toast/alert instead of native alert
+                const btn = this;
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '<i class="bi bi-check2-circle"></i> Saved!';
+                btn.classList.add('btn-success');
+                btn.classList.remove('btn-primary');
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.classList.remove('btn-success');
+                    btn.classList.add('btn-primary');
+                }, 1500);
             });
 
             // Toggle debug info

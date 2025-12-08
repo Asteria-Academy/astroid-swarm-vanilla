@@ -380,9 +380,17 @@ class MoondreamVLM:
             print(f"❌ Error loading Moondream2: {e}")
             import traceback
             traceback.print_exc()
+            self.model = None # Ensure it is None if failed
+            print("⚠️ Hint: Make sure 'einops' and 'transformers' are installed.")
 
     def invoke_with_image(self, image_path: str, prompt_text: str = "Describe this image.", max_new_tokens: int = 64) -> str:
         try:
+            if self.model is None:
+                print("⚠️ Moondream model is not initialized. Attempting to reload...")
+                self._load_model()
+                if self.model is None:
+                    return "Error: Moondream2 model failed to initialize. Please check server logs for dependency errors (e.g., missing 'einops')."
+
             if not os.path.exists(image_path):
                 return f"Error: Image file not found at {image_path}"
 
