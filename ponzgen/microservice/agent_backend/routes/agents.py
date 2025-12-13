@@ -495,6 +495,16 @@ async def delete_agent(
                     }
                 )
         
+        
+        # Delete related logs first to avoid Foreign Key violations
+        try:
+            # We ignore the result of this operation as logs might not exist
+            supabase.table("agent_logs").delete().eq("agent_id", str(agent_id)).execute()
+        except Exception as e:
+            # Log specific error but try to proceed (or fail if strict)
+            print(f"Warning: Failed to cleanup logs for agent {agent_id}: {e}")
+            # Depending on DB constraints, we might want to fail here, but let's try to proceed
+        
         # Delete agent
         try:
             response = (

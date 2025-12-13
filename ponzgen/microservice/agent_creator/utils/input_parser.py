@@ -160,7 +160,7 @@ class InputParser:
     async def parse_input(
         self, 
         user_input: str, 
-        model_name: str = "openai/gpt-4o-mini", 
+        model_name: str = "custom-vlm", 
         temperature: float = 0
     ) -> Dict[str, Any]:
         """
@@ -192,7 +192,7 @@ class InputParser:
         self, 
         user_input: str, 
         field_name: str,
-        model_name: str = "openai/gpt-4o-mini", 
+        model_name: str = "custom-vlm", 
         temperature: float = 0
     ) -> Any:
         """
@@ -248,7 +248,7 @@ input_parser = InputParser()
 
 async def extract_fields_from_input(
     user_input: str, 
-    model_name: str = "openai/gpt-4o-mini", 
+    model_name: str = "custom-vlm", 
     temperature: float = 0
 ) -> Dict[str, Any]:
     """
@@ -294,7 +294,7 @@ async def extract_fields_from_input(
 
 async def extract_fields_from_input_stream(
     user_input: str, 
-    model_name: str = "openai/gpt-4o-mini", 
+    model_name: str = "custom-vlm", 
     temperature: float = 0
 ) -> AsyncGenerator[Dict[str, Any], None]:
     """
@@ -351,7 +351,7 @@ async def extract_fields_from_input_stream(
 async def extract_keywords_from_agent(
     agent_name: str,
     description: str,
-    model_name: str = "openai/gpt-4o-mini",
+    model_name: str = "custom-vlm",
     temperature: float = 0
 ) -> List[str]:
     """
@@ -393,7 +393,7 @@ async def extract_keywords_from_agent(
 
 async def parse_multi_agent_input(
     user_input: str,
-    model_name: str = "openai/gpt-4o-mini",
+    model_name: str = "custom-vlm",
     temperature: float = 0
 ) -> Dict[str, Any]:
     """

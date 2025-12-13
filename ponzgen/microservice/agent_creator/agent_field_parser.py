@@ -24,7 +24,7 @@ class UserInputParser:
         self, 
         user_input: str, 
         target_fields: Optional[List[str]] = None,
-        model_name: str = "openai/gpt-4o-mini", 
+        model_name: str = "custom-vlm", 
         temperature: float = 0
     ) -> Dict[str, Any]:
         """
@@ -53,7 +53,7 @@ class UserInputParser:
         self, 
         user_input: str, 
         field_name: str,
-        model_name: str = "openai/gpt-4o-mini", 
+        model_name: str = "custom-vlm", 
         temperature: float = 0
     ) -> Any:
         """

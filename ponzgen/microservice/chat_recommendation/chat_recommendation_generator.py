@@ -38,7 +38,7 @@ class ChatRecommendationGenerator:
         agent_id: str,
         user_input: str,
         chat_history: List[Dict] = None,
-        model_name: str = "openai/gpt-4o-mini",
+        model_name: str = "custom-vlm",
         temperature: float = 0,
     ) -> List[str]:
         """
@@ -78,7 +78,7 @@ class ChatRecommendationGenerator:
         agent_id: str,
         user_input: str,
         chat_history: List[Dict] = None,
-        model_name: str = "openai/gpt-4o-mini",
+        model_name: str = "custom-vlm",
         temperature: float = 0,
     ) -> AsyncGenerator[str, None]:
         """

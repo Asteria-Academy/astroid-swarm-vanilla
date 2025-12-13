@@ -5,7 +5,7 @@ import os
 # Fix the import path
 from ..utils.get_llms import get_llms
 
-def get_react_agent(model_name="gpt-3.5-turbo", temperature=0, langchain_tools=[], memory=None):
+def get_react_agent(model_name="custom-vlm", temperature=0, langchain_tools=[], memory=None):
     """
     Create a ReAct agent with the specified model, tools, and memory.
     
@@ -27,7 +27,7 @@ if __name__ == "__main__":
     
     # Create memory and agent
     memory = MemorySaver()
-    agent = get_react_agent(model_name="gpt-3.5-turbo", memory=memory)
+    agent = get_react_agent(model_name="custom-vlm", memory=memory)
     
     # First interaction
     query = "My name is kelvin"

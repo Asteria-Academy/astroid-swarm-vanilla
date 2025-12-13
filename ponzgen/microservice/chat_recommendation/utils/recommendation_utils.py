@@ -92,7 +92,7 @@ def validate_recommendations(recommendations: List[str]) -> List[str]:
 async def generate_recommendations_impl(
     user_input: str,
     chat_history_messages: List[str],
-    model_name: str = "openai/gpt-4o-mini",
+    model_name: str = "custom-vlm",
     temperature: float = 0,
     streaming: bool = False
 ) -> List[str]:

@@ -50,7 +50,7 @@ async def generate_recommendations(conversation: ConversationInput, request: Req
             agent_id=conversation.agent_id,
             user_input=conversation.user_input,
             chat_history=conversation.messages,
-            model_name="anthropic/claude-3.5-sonnet",
+            model_name="custom-vlm",
             temperature=0
         )
         print(f"Generated recommendations: {recommendations}")
@@ -63,7 +63,7 @@ async def generate_recommendations(conversation: ConversationInput, request: Req
             Recommendation(
                 text=rec,
                 confidence=0.95,  # High confidence for generated recommendations
-                context={"source": "generated", "model": "openai/gpt-4o-mini"}
+                context={"source": "generated", "model": "custom-vlm"}
             ) 
             for rec in recommendations
         ]
@@ -141,7 +141,7 @@ async def stream_chat(
                     agent_id=agent_input.agent_id,
                     user_input=agent_input.user_input,
                     chat_history=agent_input.messages,
-                    model_name="anthropic/claude-3.5-sonnet",
+                    model_name="custom-vlm",
                     temperature=0
                 )
                 

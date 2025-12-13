@@ -89,8 +89,7 @@ async function loadAvailableModels() {
 
     // Directly set the Custom VLM model as the only option
     modelSelect.innerHTML = `
-        <option value="moondream" selected>Moondream2 (Fast & Lightweight)</option>
-        <option value="legacy-vlm">Legacy Custom VLM (Gemma-2 + CLIP)</option>
+        <option value="legacy-vlm" selected>Legacy Custom VLM (Gemma-2 + CLIP)</option>
     `;
 
     console.log('Set default VLM model: custom-vlm');

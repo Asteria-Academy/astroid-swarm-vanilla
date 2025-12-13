@@ -19,6 +19,8 @@ from .utils.field_utils import load_field_descriptions
 from ..agent_boilerplate.boilerplate.errors import (
     BadRequestError, InternalServerError, ServiceUnavailableError
 )
+from ..agent_boilerplate.boilerplate.utils.custom_vlm_model import get_custom_vlm_model
+from langchain_core.language_models import LLM
 
 class AgentFieldAutofill:
     """
@@ -30,7 +32,7 @@ class AgentFieldAutofill:
         """Initialize the AgentFieldAutofill."""
         pass
     
-    def get_llm(self, model_name: str = "openai/gpt-4o-mini", temperature: float = 0) -> ChatOpenAI:
+    def get_llm(self, model_name: str = "custom-vlm", temperature: float = 0) -> LLM:
         """
         Get a configured LLM instance.
         
@@ -42,28 +44,13 @@ class AgentFieldAutofill:
             A configured ChatOpenAI instance
         """
         try:
-            api_key = os.getenv(
-                "OPEN_ROUTER_API_KEY", 
-                "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"
-            )
-            base_url = os.getenv(
-                "OPEN_ROUTER_BASE_URL", 
-                "https://openrouter.ai/api/v1/chat/completions"
-            )
-            
-            return ChatOpenAI(
-                openai_api_key=api_key,
-                openai_api_base=base_url,
-                model=model_name,
-                temperature=temperature,
-                base_url="https://openrouter.ai/api/v1",
-                streaming=True
-            )
+            print(f"Initializing LLM: Using Custom VLM instead of {model_name}")
+            return get_custom_vlm_model()
         except Exception as e:
             raise InternalServerError(f"Failed to initialize LLM: {str(e)}")
     
     async def generate_autofill(self, field_name: str, json_field: Dict[str, Any], existing_field_value: str = "",
-                                model_name: str = "openai/gpt-4o-mini", temperature: float = 0.7) -> Dict[str, Any]:
+                                model_name: str = "custom-vlm", temperature: float = 0.7) -> Dict[str, Any]:
         """
         Generate a field autofill based on other field values.
         
@@ -92,19 +79,21 @@ class AgentFieldAutofill:
             
             # Generate the autofill
             try:
-                response = await llm.ainvoke(
-                    [HumanMessage(content=system_prompt)]
-                )
+                # Pass system_prompt string directly to avoid list[BaseMessage] -> string formatting issues
+                response = await llm.ainvoke(system_prompt)
             except Exception as e:
                 raise ServiceUnavailableError(
                     f"LLM service failed to respond: {str(e)}",
                     additional_info={"model": model_name}
                 )
             
+            # Handle response type (ChatModel returns AIMessage, LLM returns str)
+            content = response.content if hasattr(response, 'content') else str(response)
+
             # Return the autofill
             return {
                 "field_name": field_name,
-                "autofilled_value": response.content,
+                "autofilled_value": content,
                 "reasoning": None  # Could be extracted from the response if needed
             }
         except (BadRequestError, ServiceUnavailableError):
@@ -121,7 +110,7 @@ class AgentFieldAutofill:
             )
     
     async def generate_autofill_stream(self, field_name: str, json_field: Dict[str, Any], existing_field_value: str = "",
-                                     model_name: str = "gpt-3.5-turbo", 
+                                     model_name: str = "custom-vlm", 
                                      temperature: float = 0.7) -> AsyncGenerator[str, None]:
         """
         Generate a field autofill with streaming response.
@@ -155,10 +144,12 @@ class AgentFieldAutofill:
             # Stream the response
             full_response = ""
             try:
-                async for chunk in llm.astream([HumanMessage(content=system_prompt)]):
-                    if hasattr(chunk, 'content') and chunk.content:
-                        full_response += chunk.content
-                        yield f"event: token\ndata: {json.dumps({'token': chunk.content})}\n\n"
+                # Pass system_prompt string directly
+                async for chunk in llm.astream(system_prompt):
+                    content = chunk.content if hasattr(chunk, 'content') else str(chunk)
+                    if content:
+                        full_response += content
+                        yield f"event: token\ndata: {json.dumps({'token': content})}\n\n"
             except Exception as e:
                 error_message = f"LLM streaming failed: {str(e)}"
                 yield f"event: error\ndata: {json.dumps({'error': error_message})}\n\n"

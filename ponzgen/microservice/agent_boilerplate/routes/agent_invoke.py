@@ -112,7 +112,7 @@ async def _maybe_handle_multimodal_and_augment(agent_input, max_new_tokens=None,
     if model_name and model_name.lower() == "custom-vlm":
         if isinstance(inp_dict.get("metadata"), dict):
             # You can make this configurable or default to gpt-3.5-turbo/gpt-4o
-            inp_dict["metadata"]["model_name"] = "gpt-3.5-turbo"
+            inp_dict["metadata"]["model_name"] = "custom-vlm"
 
     # kembalikan kembali ke tipe AgentInput
     # Menggunakan parse_obj atau konstruktor tergantung versi Pydantic, di sini asumsi parse_obj/konstruktor standar

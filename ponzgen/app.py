@@ -55,7 +55,7 @@ try:
     from microservice.agent_boilerplate.boilerplate.models import AgentInput
     from microservice.agent_boilerplate.boilerplate.agent_boilerplate import agent_boilerplate
     from microservice.agent_boilerplate.boilerplate.utils.custom_vlm_model import _maybe_handle_multimodal_and_augment
-    from microservice.agent_boilerplate.dependencies import get_supabase_client
+    from microservice.agent_boilerplate.routes.agent_invoke import get_supabase_client
 except ImportError as e:
     # Fallback/Placeholder if imports are structurally different in your project
     logging.warning(f"Could not import agent_boilerplate specifics: {e}. The overridden endpoint might fail without them.")

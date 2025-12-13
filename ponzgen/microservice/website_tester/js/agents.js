@@ -659,8 +659,16 @@ async function autofillAgentStyle() {
                     }
                 };
 
+                // Determine what text to type
+                let textToType = newText;
+
+                // If the response contains the original value at the start, only type the new part
+                if (originalValue && newText.startsWith(originalValue)) {
+                    textToType = newText.substring(originalValue.length);
+                }
+
                 // Start typing the new text
-                await typeText(newText.substring(originalValue ? originalValue.length : 0), 0);
+                await typeText(textToType, 0);
             } else {
                 // Restore original value if no result
                 styleTextarea.value = originalValue;

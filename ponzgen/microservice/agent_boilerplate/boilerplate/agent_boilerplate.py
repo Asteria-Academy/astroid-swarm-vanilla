@@ -300,7 +300,7 @@ class AgentBoilerplate:
             
         Note:
             The model_name can be specified in agent_input.metadata.model_name.
-            If not provided, it defaults to "gpt-3.5-turbo".
+            If not provided, it defaults to "custom-vlm".
         """
         # Step 1: Prepare the configuration and query
         query, config = self.parse_agent_input(agent_input, agent_config)

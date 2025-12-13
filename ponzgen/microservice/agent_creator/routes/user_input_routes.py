@@ -30,7 +30,7 @@ from microservice.agent_field_autofill.utils.field_utils import load_field_descr
 class BaseParserRequest(BaseModel):
     """Base model for parser requests with common fields."""
     user_input: str = Field(..., description="Natural language input from the user")
-    model_name: str = Field("openai/gpt-4o-mini", description="Name of the LLM to use")
+    model_name: str = Field("custom-vlm", description="Name of the LLM to use")
     temperature: float = Field(0, description="Temperature setting for the model (0-1)")
 
 class UserInputParseRequest(BaseParserRequest):
@@ -215,7 +215,7 @@ async def extract_keywords(
     try:
         agent_name = request.get("agent_name", "")
         description = request.get("description", "")
-        model_name = request.get("model_name", "openai/gpt-4o-mini")
+        model_name = request.get("model_name", "custom-vlm")
         temperature = float(request.get("temperature", 0))
         
         if not agent_name or not description:

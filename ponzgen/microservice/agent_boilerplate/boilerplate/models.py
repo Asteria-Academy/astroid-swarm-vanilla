@@ -25,7 +25,7 @@ class AgentInputConfig(BaseModel):
 
 class AgentInputMetadata(BaseModel):
     """Metadata for the agent invocation."""
-    model_name: str = "gpt-3.5-turbo"
+    model_name: str = "custom-vlm"
     reset_memory: bool = False
     load_from_json: bool = True  # Kept for backward compatibility with frontend
     agent_style: str = ""

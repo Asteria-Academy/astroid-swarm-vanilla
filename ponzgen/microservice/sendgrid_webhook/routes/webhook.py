@@ -93,7 +93,7 @@ Please analyze this email and determine the appropriate action to take."""
                     configurable={"thread_id": f"email_{email_id}"}
                 ),
                 metadata=AgentInputMetadata(
-                    model_name="gpt-4o-mini",
+                    model_name="custom-vlm",
                     reset_memory=False
                 )
             )

@@ -70,7 +70,7 @@ class MyModel(nn.Module):
         # Initialize Gemma-2
         self.model_language = AutoModelForCausalLM.from_pretrained(
             GEMMA_MODEL_ID,
-            torch_dtype=torch.bfloat16,
+            dtype=torch.bfloat16,
             device_map="auto" if DEVICE == "cuda" else None
         )
         self.tokenizer_language = AutoTokenizer.from_pretrained(GEMMA_MODEL_ID, padding_side='right')
@@ -144,6 +144,8 @@ class MyModel(nn.Module):
                 max_new_tokens=max_new_tokens,
                 do_sample=True, 
                 temperature=0.7,
+                repetition_penalty=1.2,
+                no_repeat_ngram_size=3,
                 pad_token_id=self.tokenizer_language.eos_token_id
             )
             
@@ -206,6 +208,8 @@ class MyModel(nn.Module):
             max_new_tokens=max_new_tokens,
             num_beams=5,
             do_sample=False,
+            repetition_penalty=1.2,
+            no_repeat_ngram_size=3,
             pad_token_id=self.tokenizer_language.eos_token_id
         )
 
@@ -308,8 +312,7 @@ class CustomVLMLLM(LLM):
         run_manager: Optional[CallbackManagerForLLMRun] = None,
         **kwargs: Any,
     ) -> str:
-        """Async version of _call."""
-        """Async version of _call."""
+        """Async version of _call with streaming support."""
         if self.model is None:
             self._load_model()
             
@@ -324,10 +327,33 @@ class CustomVLMLLM(LLM):
         )
         
         # Emit the token callback asynchronously
+        # For non-streaming models like this one, we just emit the whole response as one token
+        # unless we implement true streaming in generate_answer_text
         if run_manager:
             await run_manager.on_llm_new_token(response)
             
         return response
+
+    async def astream(self, input: Any, config: Optional[Any] = None, **kwargs: Any):
+        """Streaming support for Custom VLM."""
+        # This is strictly for the agent_field_autofill which expects an astream method
+        # The input is usually a list of messages, but we just need the last one's content
+        prompt = ""
+        if isinstance(input, list):
+             # It's a list of BaseMessages
+             prompt = input[-1].content
+        else:
+             prompt = str(input)
+             
+        response = await self._acall(prompt)
+        
+        # Yield the response in chunks (simulated streaming)
+        chunk_size = 4
+        for i in range(0, len(response), chunk_size):
+            chunk = response[i:i+chunk_size]
+            yield type('Chunk', (object,), {'content': chunk})()
+            import asyncio
+            await asyncio.sleep(0.01) # Small delay to simulate streaming
 
     def invoke_with_image(self, image_path: str, prompt_text: str = None, max_new_tokens: int = 64) -> str:
         """
@@ -350,67 +376,13 @@ class CustomVLMLLM(LLM):
             return f"Error during inference: {str(e)}"
 
 
-# ===============================================================
-# MOONDREAM VLM WRAPPER
-# ===============================================================
 
-class MoondreamVLM:
-    """
-    Wrapper for vikhyatk/moondream2 model.
-    """
-    def __init__(self):
-        self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.model_id = "vikhyatk/moondream2"
-        self.model = None
-        self.tokenizer = None
-        self._load_model()
-
-    def _load_model(self):
-        print(f"Initializing Moondream2 model on {self.device}...")
-        try:
-            self.model = AutoModelForCausalLM.from_pretrained(
-                self.model_id, 
-                trust_remote_code=True,
-                revision="2024-08-26" # Pin revision for stability
-            ).to(self.device)
-            self.tokenizer = AutoTokenizer.from_pretrained(self.model_id, revision="2024-08-26")
-            self.model.eval()
-            print(f"✅ Moondream2 model ready on device: {self.device}")
-        except Exception as e:
-            print(f"❌ Error loading Moondream2: {e}")
-            import traceback
-            traceback.print_exc()
-            self.model = None # Ensure it is None if failed
-            print("⚠️ Hint: Make sure 'einops' and 'transformers' are installed.")
-
-    def invoke_with_image(self, image_path: str, prompt_text: str = "Describe this image.", max_new_tokens: int = 64) -> str:
-        try:
-            if self.model is None:
-                print("⚠️ Moondream model is not initialized. Attempting to reload...")
-                self._load_model()
-                if self.model is None:
-                    return "Error: Moondream2 model failed to initialize. Please check server logs for dependency errors (e.g., missing 'einops')."
-
-            if not os.path.exists(image_path):
-                return f"Error: Image file not found at {image_path}"
-
-            image = Image.open(image_path)
-            enc_image = self.model.encode_image(image)
-            
-            # Moondream uses a specific answer method
-            answer = self.model.answer_question(enc_image, prompt_text, self.tokenizer)
-            return answer
-
-        except Exception as e:
-            print(f"Error during Moondream inference: {e}")
-            return f"Error during inference: {str(e)}"
 
 # ===============================================================
 # GLOBAL MODEL INSTANCE & HELPER
 # ===============================================================
 
 _custom_vlm_instance = None
-_moondream_vlm_instance = None
 
 
 def get_custom_vlm_model() -> CustomVLMLLM:
@@ -419,13 +391,6 @@ def get_custom_vlm_model() -> CustomVLMLLM:
     if _custom_vlm_instance is None:
         _custom_vlm_instance = CustomVLMLLM()
     return _custom_vlm_instance
-
-def get_moondream_vlm_model() -> MoondreamVLM:
-    """Get or create the global Moondream VLM model instance."""
-    global _moondream_vlm_instance
-    if _moondream_vlm_instance is None:
-        _moondream_vlm_instance = MoondreamVLM()
-    return _moondream_vlm_instance
 
 async def _maybe_handle_multimodal_and_augment(agent_input, max_new_tokens=64, model_name=None):
     """
@@ -442,26 +407,9 @@ async def _maybe_handle_multimodal_and_augment(agent_input, max_new_tokens=64, m
     if image_path:
         print(f"Multimodal input detected! Image path: {image_path}")
         
-        # Determine which VLM to use
-        vlm_response = ""
-        
-        # Default to Moondream if model_name is 'moondream' or 'custom-vlm' (since we are switching)
-        # Or if user specifically asks for it.
-        # For now, let's make Moondream the default if model_name is 'custom-vlm' or None
-        
-        use_moondream = True
-        if model_name and model_name.lower() == "legacy-vlm":
-            use_moondream = False
-            
-        if use_moondream:
-            print("Using Moondream2 VLM...")
-            vlm = get_moondream_vlm_model()
-            # You can extract a specific question from messages if needed, but default description is fine
-            vlm_response = vlm.invoke_with_image(image_path)
-        else:
-            print("Using Legacy Custom VLM...")
-            vlm = get_custom_vlm_model()
-            vlm_response = vlm.invoke_with_image(image_path, max_new_tokens=max_new_tokens)
+        print("Using Custom VLM...")
+        vlm = get_custom_vlm_model()
+        vlm_response = vlm.invoke_with_image(image_path, max_new_tokens=max_new_tokens)
         
         print(f"VLM Response: {vlm_response}")
         
@@ -477,14 +425,6 @@ async def _maybe_handle_multimodal_and_augment(agent_input, max_new_tokens=64, m
             current_context = getattr(agent_input.input, 'context', '')
             setattr(agent_input.input, 'context', f"{current_context}\n\n[Image Description]: {vlm_response}")
             
-    # Fix: Reset model_name to a standard LLM if it was 'custom-vlm', 'moondream', or 'legacy-vlm'
-    # because the agent execution needs a valid LLM (not the VLM itself).
-    # UPDATED: We now support text generation in CustomVLMLLM, so we don't need to switch if the user wants legacy-vlm.
-    # if model_name and (model_name.lower() == "custom-vlm" or model_name.lower() == "moondream" or model_name.lower() == "legacy-vlm"):
-    #     if hasattr(agent_input, "metadata"):
-    #         if isinstance(agent_input.metadata, dict):
-    #             agent_input.metadata["model_name"] = "gpt-3.5-turbo"
-    #         else:
-    #             setattr(agent_input.metadata, "model_name", "gpt-3.5-turbo")
+
 
     return agent_input
