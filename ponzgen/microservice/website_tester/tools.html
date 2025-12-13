@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ponzgen Tooling Hub</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <!-- CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link href="css/styles.css" rel="stylesheet">
+</head>
+
+<body>
+
+    <div class="app-layout">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar-panel" id="sidebarPanel">
+            <div class="sidebar-header d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="icon-box bg-success-soft text-success"
+                        style="width: 32px; height: 32px; font-size: 1rem;">
+                        <i class="bi bi-tools"></i>
+                    </div>
+                    <span class="fw-bold tracking-wide text-sm">Tooling Hub</span>
+                </div>
+                <!-- Back to Home -->
+                <a href="index.html" class="btn btn-sm btn-light-soft text-muted border-0" title="Back to Home">
+                    <i class="bi bi-house"></i>
+                </a>
+            </div>
+
+            <div class="sidebar-content">
+                <div class="d-grid gap-2 mb-4">
+                    <button id="create-tool-btn" class="btn btn-primary shadow-sm" data-bs-toggle="modal"
+                        data-bs-target="#tool-modal">
+                        <i class="bi bi-plus-lg me-2"></i>New Tool
+                    </button>
+                    <button id="refresh-tools" class="btn btn-light-soft text-primary">
+                        <i class="bi bi-arrow-clockwise me-2"></i>Refresh Registry
+                    </button>
+                    <button id="clone-tool-btn" class="btn btn-light-soft text-secondary">
+                        <i class="bi bi-copy me-2"></i>Clone Tool
+                    </button>
+                </div>
+
+                <div class="mb-4">
+                    <label class="text-xs fw-bold text-uppercase text-muted mb-2">Scope Filter</label>
+                    <div class="mb-3">
+                        <label class="form-label text-xs">Organization</label>
+                        <select class="form-select form-control" id="company-filter">
+                            <option value="">All Tools</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="p-3 bg-light rounded border border-light">
+                    <h6 class="text-xs fw-bold text-uppercase text-muted mb-2">Registry Stats</h6>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-sm text-muted">Total Tools</span>
+                        <span class="fw-bold text-dark" id="stats-total">--</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="text-sm text-muted">Active</span>
+                        <span class="fw-bold text-success" id="stats-active">--</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar-footer">
+                <div class="text-xs text-center text-muted">
+                    Engineered by Ponzgen Core
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="chat-area">
+            <!-- Glass Header -->
+            <header class="chat-header">
+                <div class="d-flex align-items-center">
+                    <button class="btn btn-outline-secondary d-md-none me-2" id="toggleSidebar">
+                        <i class="bi bi-list"></i>
+                    </button>
+                    <div>
+                        <h5 class="mb-0 fw-bold text-dark">Capabilities Registry</h5>
+                        <p class="mb-0 text-xs text-muted">Manage integration points and abilities</p>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Tools Grid -->
+            <div id="tools-container" class="agent-grid">
+                <!-- Tools injected here -->
+            </div>
+
+            <!-- Details Panel -->
+            <div id="tool-details-panel"
+                class="position-absolute bottom-0 end-0 bg-white shadow-lg border-start border-top rounded-start p-4 m-0"
+                style="width: 450px; height: calc(100% - 70px); transform: translateX(100%); transition: transform 0.3s ease; z-index: 20; overflow-y: auto;">
+
+                <div class="d-flex justify-content-between align-items-start mb-4">
+                    <h5 class="fw-bold mb-0">Tool Specification</h5>
+                    <button class="btn btn-sm btn-light rounded-circle" onclick="closeToolDetails()">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+
+                <div id="tool-details-content">
+                    <!-- Content injected via JS -->
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Modals -->
+
+    <!-- Tool Modal -->
+    <div class="modal fade" id="tool-modal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header border-bottom-0 pb-0">
+                    <h5 class="modal-title fw-bold" id="tool-modal-label">Define Tool</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <form id="tool-form">
+                        <input type="hidden" id="tool-id">
+                        <div class="row g-3">
+                            <div class="col-md-12">
+                                <label class="form-label text-xs fw-bold text-uppercase text-muted">Tool
+                                    Identifier</label>
+                                <input type="text" class="form-control" id="tool-name" placeholder="e.g. search_web"
+                                    required>
+                                <div class="form-text text-xs">Must be unique system-wide.</div>
+                            </div>
+
+                            <div class="col-md-12">
+                                <label class="form-label text-xs fw-bold text-uppercase text-muted">Function
+                                    Description</label>
+                                <textarea class="form-control" id="tool-description" rows="2"
+                                    placeholder="Describe the utility of this tool..."></textarea>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label text-xs fw-bold text-uppercase text-muted">Ownership</label>
+                                <select class="form-select form-control" id="tool-company">
+                                    <option value="">Personal Tool</option>
+                                    <!-- Dynamic -->
+                                </select>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label text-xs fw-bold text-uppercase text-muted">Status</label>
+                                <div class="form-check form-switch mt-2">
+                                    <input class="form-check-input" type="checkbox" id="tool-active" checked>
+                                    <label class="form-check-label" for="tool-active">Active / Online</label>
+                                </div>
+                            </div>
+
+                            <div class="col-md-12 mt-4">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <label class="form-label text-xs fw-bold text-uppercase text-muted mb-0">Version
+                                        Control</label>
+                                    <button type="button" class="btn btn-sm btn-outline-primary rounded-pill"
+                                        id="add-version-btn">
+                                        <i class="bi bi-plus me-1"></i>Add Version
+                                    </button>
+                                </div>
+                                <div id="versions-container" class="d-flex flex-column gap-3">
+                                    <!-- Version inputs added here via JS -->
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer border-top-0 pt-0 pb-4 pe-4">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Discard</button>
+                    <button type="button" class="btn btn-primary px-4" id="save-tool">Save Tool</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Clone Tool Modal -->
+    <div class="modal fade" id="clone-tool-modal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header border-bottom-0">
+                    <h5 class="modal-title fw-bold">Fork Tool Definition</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted mb-3">Select a source tool to clone:</p>
+                    <div id="clone-tools-container">
+                        <div class="text-center">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-top-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="confirm-clone-tool" disabled>Confirm Fork</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/main.js"></script>
+    <script src="js/tools.js"></script>
+
+    <script>
+        // Sidebar Toggle for Mobile
+        const toggleBtn = document.getElementById('toggleSidebar');
+        const sidebar = document.getElementById('sidebarPanel');
+        if (toggleBtn) {
+            toggleBtn.addEventListener('click', () => {
+                sidebar.classList.toggle('show');
+            });
+        }
+
+        function closeToolDetails() {
+            const panel = document.getElementById('tool-details-panel');
+            panel.style.transform = 'translateX(100%)';
+        }
+
+        // Observer for panel visibility
+        const observer = new MutationObserver((mutations) => {
+            const panel = document.getElementById('tool-details-panel');
+            if (document.getElementById('tool-details-content').innerHTML.trim().length > 0) {
+                panel.style.transform = 'translateX(0)';
+            }
+        });
+    </script>
+</body>
+
+</html>
