@@ -11,7 +11,7 @@ let isMultiAgentMode = false;
 let isToolsAutofilling = false; // Add flag to track autofill status
 
 // Agent Creator namespace using Module Pattern
-const AgentCreator = (function() {
+const AgentCreator = (function () {
     // Private state
     let availableFields = [];
 
@@ -19,7 +19,10 @@ const AgentCreator = (function() {
     const ApiService = {
         getAgentCreatorUrl() {
             const baseUrl = API.getBaseUrl();
-            console.log('API Base URL:', baseUrl);
+            // If running on localhost:8000, assume agent creator is on 8080
+            if (baseUrl.includes(':8000')) {
+                return baseUrl.replace(':8000', ':8080');
+            }
             return baseUrl;
         },
 
@@ -29,22 +32,22 @@ const AgentCreator = (function() {
                     method,
                     headers: API.getHeaders(!!body)
                 };
-                
+
                 if (body) {
                     options.body = JSON.stringify(body);
                 }
-                
+
                 console.log(`Making API request to ${this.getAgentCreatorUrl()}${endpoint}`, { method, options });
-                
+
                 const response = await fetch(`${this.getAgentCreatorUrl()}${endpoint}`, options);
-                
+
                 if (!response.ok) {
                     const errorData = await response.json().catch(() => ({
                         detail: `HTTP error! Status: ${response.status}`
                     }));
                     throw errorData;
                 }
-                
+
                 const responseData = await response.json();
                 console.log(`API response from ${endpoint}:`, responseData);
                 return responseData;
@@ -55,8 +58,8 @@ const AgentCreator = (function() {
         },
 
         getParseStreamUrl() {
-            // Build base URL using the API utility
-            const baseUrl = API.getBaseUrl();
+            // Build base URL using the Agent Creator URL, not the main API URL
+            const baseUrl = this.getAgentCreatorUrl();
             const streamEndpoint = `/user-input/parse-stream`;
             return `${baseUrl}${streamEndpoint}`;
         },
@@ -75,7 +78,7 @@ const AgentCreator = (function() {
                 } catch (e) {
                     // If that fails (likely 404), fetch data via separate endpoints
                     console.log('Single endpoint not available. ');
-                    
+
                 }
             } catch (error) {
                 console.error('Error fetching field metadata:', error);
@@ -86,65 +89,65 @@ const AgentCreator = (function() {
                 };
             }
         },
-        
+
         async getAvailableTools() {
             try {
                 console.log('Fetching available tools from API...');
-                
+
                 // Get company filter value if it exists
                 const companyFilter = document.getElementById('company-filter');
                 const companyId = companyFilter ? companyFilter.value : null;
-                
+
                 // Build endpoint with company filter if present
                 let endpoint = '/tools';
                 if (companyId) {
                     endpoint += `?company_id=${companyId}`;
                 }
-                
+
                 console.log('API URL:', this.getAgentCreatorUrl() + endpoint);
-                
+
                 // Add a timeout to the fetch operation
                 const timeoutId = setTimeout(() => {
                     console.warn('Tool fetch operation is taking longer than expected');
                 }, 5000);
-                
-                const tools = await this.makeRequest(endpoint);
+
+                const tools = await API.get(endpoint);
                 clearTimeout(timeoutId);
-                
+
                 if (!tools || tools.length === 0) {
                     console.log('No tools found');
                     window.availableTools = [];
                     window.availableToolsMap = {};
                     return [];
                 }
-                
+
                 // Store tools globally for UI access
                 window.availableTools = tools;
-                
+
                 // Create a map of tool ID to tool object for quick lookup
                 window.availableToolsMap = {};
                 tools.forEach(tool => {
                     window.availableToolsMap[tool.tool_id] = tool;
                 });
-                
+
                 console.log(`Successfully retrieved ${tools.length} tools`);
                 console.log('Tool data sample:', tools[0]);
                 return tools;
             } catch (error) {
                 console.error('Error fetching available tools:', error);
-                
+
                 // Try to get more detailed error information
                 let errorDetails = '';
                 if (error.status) errorDetails += ` Status: ${error.status}.`;
                 if (error.detail) errorDetails += ` Detail: ${error.detail}.`;
                 if (error.message) errorDetails += ` Message: ${error.message}.`;
-                
+
                 console.error('Error details:', errorDetails || 'No additional details');
-                
+
                 // Show more detailed error information
                 const errorMessage = error.detail || error.message || JSON.stringify(error);
                 Utils.showNotification(`Error loading available tools: ${errorMessage}`, 'warning');
-                
+
                 // Initialize empty tools arrays
                 window.availableTools = [];
                 window.availableToolsMap = {};
@@ -163,17 +166,17 @@ const AgentCreator = (function() {
                     existing_field_value: existingValue,
                     available_tools: []  // Always send empty tools array, backend will get all tools
                 };
-                
+
                 // We'll let the backend handle fetching all tools
                 if (field === 'tools') {
                     requestBody.return_tool_ids = true;
                 }
-                
+
                 console.log(`Sending autofill request for ${field}:`, requestBody);
-                
+
                 const responseData = await this.makeRequest('/agent-creator-autofill/invoke', 'POST', requestBody);
                 console.log(`Autofill response for ${field}:`, responseData);
-                
+
                 return responseData;
             } catch (error) {
                 console.error(`Error in autofillField for ${field}:`, error);
@@ -194,13 +197,13 @@ const AgentCreator = (function() {
             if (!versions || versions.length === 0) {
                 return 'None';
             }
-            
+
             // Check if versions have the expected structure
             const validVersions = versions.filter(v => v && v.version);
             if (validVersions.length === 0) {
                 return 'Invalid version format';
             }
-            
+
             // Format as version numbers with additional details
             return validVersions.map(v => {
                 let details = '';
@@ -211,61 +214,73 @@ const AgentCreator = (function() {
                 return `${v.version}${details}`;
             }).join(', ');
         },
-        
+
         // Chat UI management
         addMessage(message, isBot = false) {
             const chatContainer = document.getElementById('chat-container');
             const messageDiv = document.createElement('div');
-            messageDiv.className = `chat-message chat-message--${isBot ? 'bot' : 'user'}`;
-            messageDiv.textContent = message;
+            // Use new classes: message-bubble agent/user
+            messageDiv.className = `message-bubble ${isBot ? 'agent' : 'user'} animate__animated animate__fadeInUp`;
+
+            // For agent messages, we might want markdown parsing in the future, but for now text
+            // We can add a small avatar or label if needed, but styling handles it via class
+            messageDiv.innerHTML = `
+                <div class="message-content">${message}</div>
+                <div class="message-meta">${isBot ? 'Architect' : 'You'}</div>
+            `;
+
             chatContainer.appendChild(messageDiv);
             chatContainer.scrollTop = chatContainer.scrollHeight;
         },
-        
+
         addUserMessage(message) {
             this.addMessage(message, false);
         },
-        
+
         addBotMessage(message) {
             this.addMessage(message, true);
         },
-        
+
         addBotTypingIndicator() {
             const chatContainer = document.getElementById('chat-container');
             const indicatorDiv = document.createElement('div');
-            indicatorDiv.className = 'chat-message chat-message--bot loading-dots';
+            indicatorDiv.className = 'message-bubble agent loading-indicator-bubble';
             indicatorDiv.id = 'typing-indicator';
-            indicatorDiv.textContent = 'Thinking';
+            indicatorDiv.innerHTML = `
+                <div class="typing-dots">
+                    <span></span><span></span><span></span>
+                </div>
+            `;
             chatContainer.appendChild(indicatorDiv);
             chatContainer.scrollTop = chatContainer.scrollHeight;
         },
-        
+
         removeTypingIndicator() {
             const indicator = document.getElementById('typing-indicator');
             if (indicator) {
                 indicator.remove();
             }
         },
-        
+
         clearChat() {
             document.getElementById('chat-container').innerHTML = '';
         },
-        
+
         // Field help modal
         showFieldHelpModal() {
             console.log('Method called: UiManager.showFieldHelpModal');
             const modal = new bootstrap.Modal(document.getElementById('field-help-modal'));
             modal.show();
         },
-        
+
         updateFieldDescriptions(fields) {
             const fieldDescriptionsContainer = document.getElementById('field-descriptions');
-            
+
             if (!fields || fields.length === 0) {
                 fieldDescriptionsContainer.innerHTML = '<p>No field descriptions available</p>';
                 return;
             }
-            
+
             const fieldItems = fields.map(field => `
                 <div class="list-group-item">
                     <div class="d-flex w-100 justify-content-between">
@@ -274,10 +289,10 @@ const AgentCreator = (function() {
                     <p class="mb-1">${field.description}</p>
                 </div>
             `);
-            
+
             fieldDescriptionsContainer.innerHTML = fieldItems.join('');
         },
-        
+
         // Agent preview formatting
         formatFieldValue(field, value) {
             if (field === 'tools') {
@@ -293,40 +308,40 @@ const AgentCreator = (function() {
                 }
                 return '<span class="badge bg-secondary">No tools selected</span>';
             }
-            
+
             if (field === 'keywords') {
                 if (Array.isArray(value) && value.length > 0) {
-                    return value.map(keyword => 
+                    return value.map(keyword =>
                         `<span class="badge bg-info me-1">${keyword}</span>`
                     ).join(' ');
                 }
                 return '<span class="badge bg-secondary">No keywords</span>';
             }
-            
+
             if (value === undefined || value === null || value === '') {
                 return '<span class="text-muted">Not specified</span>';
             }
-            
+
             if (field === 'on_status') {
                 return value ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-danger">Inactive</span>';
             }
-            
+
             return value;
         },
-        
+
         updateAgentPreview(agentData, isMultiAgent = false) {
             const previewContainer = document.getElementById('agent-preview');
-            
+
             // If it's multi-agent mode and we have variations
             if (isMultiAgent && multiAgentData && multiAgentData.agent_variations && multiAgentData.agent_variations.length > 0) {
                 const variations = multiAgentData.agent_variations;
-                
+
                 let previewHtml = `
                     <div class="mb-3">
                         <h6>Common Attributes</h6>
                         <div class="mb-3">
                 `;
-                
+
                 // Display common attributes
                 for (const [field, value] of Object.entries(multiAgentData.common_attributes)) {
                     if (value && typeof value !== 'object') {
@@ -338,7 +353,7 @@ const AgentCreator = (function() {
                         `;
                     }
                 }
-                
+
                 // Add keywords if available in common attributes or extractedAgentData
                 const keywords = multiAgentData.common_attributes.keywords || extractedAgentData.keywords;
                 if (keywords && Array.isArray(keywords) && keywords.length > 0) {
@@ -346,16 +361,16 @@ const AgentCreator = (function() {
                         <div class="field-item field-item--filled mb-2">
                             <strong>keywords:</strong>
                             <div class="mt-1">
-                                ${keywords.map(keyword => 
-                                    `<span class="badge bg-info me-1">${keyword}</span>`
-                                ).join('')}
+                                ${keywords.map(keyword =>
+                        `<span class="badge bg-info me-1">${keyword}</span>`
+                    ).join('')}
                             </div>
                         </div>
                     `;
                 }
-                
+
                 previewHtml += `</div><h6>Agent Variations (${variations.length})</h6>`;
-                
+
                 // Add a legend to explain the highlighting
                 previewHtml += `
                     <div class="mb-3 small">
@@ -369,7 +384,7 @@ const AgentCreator = (function() {
                         </div>
                     </div>
                 `;
-                
+
                 // Display each agent variation
                 variations.forEach((agent, index) => {
                     previewHtml += `
@@ -379,17 +394,17 @@ const AgentCreator = (function() {
                             </div>
                             <div class="card-body p-2">
                     `;
-                    
+
                     // Create a complete agent view by merging common attributes with agent-specific ones
                     const completeAgent = { ...multiAgentData.common_attributes, ...agent };
-                    
+
                     // Add all fields for this agent (both common and agent-specific)
                     for (const [field, value] of Object.entries(completeAgent)) {
                         if (value && typeof value !== 'object' && field !== 'keywords') {
                             const formattedValue = this.formatFieldValue(field, value);
                             // Add a special class if this field is agent-specific (not in common attributes)
-                            const isAgentSpecific = !multiAgentData.common_attributes.hasOwnProperty(field) || 
-                                                   multiAgentData.common_attributes[field] !== value;
+                            const isAgentSpecific = !multiAgentData.common_attributes.hasOwnProperty(field) ||
+                                multiAgentData.common_attributes[field] !== value;
                             previewHtml += `
                                 <div class="field-item field-item--filled mb-1 ${isAgentSpecific ? 'field-item--agent-specific' : ''}">
                                     <strong>${field}:</strong> ${formattedValue}
@@ -397,24 +412,24 @@ const AgentCreator = (function() {
                             `;
                         }
                     }
-                    
+
                     // Add agent-specific keywords if present, or fall back to common keywords
                     const agentKeywords = agent.keywords && Array.isArray(agent.keywords) && agent.keywords.length > 0 ?
-                                         agent.keywords : keywords;
+                        agent.keywords : keywords;
                     if (agentKeywords && Array.isArray(agentKeywords) && agentKeywords.length > 0) {
                         const isAgentSpecific = agent.keywords && Array.isArray(agent.keywords) && agent.keywords.length > 0;
                         previewHtml += `
                             <div class="field-item field-item--filled mb-1 ${isAgentSpecific ? 'field-item--agent-specific' : ''}">
                                 <strong>keywords:</strong>
                                 <div class="mt-1">
-                                    ${agentKeywords.map(keyword => 
-                                        `<span class="badge bg-info me-1">${keyword}</span>`
-                                    ).join('')}
+                                    ${agentKeywords.map(keyword =>
+                            `<span class="badge bg-info me-1">${keyword}</span>`
+                        ).join('')}
                                 </div>
                             </div>
                         `;
                     }
-                    
+
                     // Add agent-specific tool selection
                     previewHtml += `
                         <div class="field-item field-item--filled mt-3 field-item--agent-specific">
@@ -439,10 +454,10 @@ const AgentCreator = (function() {
                             </div>
                         </div>
                     `;
-                    
+
                     previewHtml += `</div></div>`;
                 });
-                
+
                 // Add MCPHub Recommendations section at the bottom - multi-agent version
                 previewHtml += `
                     <!-- MCPHub Recommendations -->
@@ -464,21 +479,21 @@ const AgentCreator = (function() {
                         </div>
                     </div>
                 `;
-                
+
                 previewContainer.innerHTML = previewHtml;
-                
+
                 // Initialize tool checkboxes for each agent
                 variations.forEach((agent, index) => {
                     this.populateAgentToolCheckboxes(index, agent.tools || []);
                 });
-                
+
                 // Add tool event listeners for agent-specific controls
                 this.setupAgentToolInteractionListeners();
-                
+
             } else {
                 // Standard single agent preview
                 let previewHtml = '';
-                
+
                 // Display fields that have values
                 for (const [field, value] of Object.entries(agentData)) {
                     if (value && typeof value !== 'object' && field !== 'keywords') {
@@ -490,21 +505,21 @@ const AgentCreator = (function() {
                         `;
                     }
                 }
-                
+
                 // Add keywords if available
                 if (agentData.keywords && Array.isArray(agentData.keywords) && agentData.keywords.length > 0) {
                     previewHtml += `
                         <div class="field-item field-item--filled mb-2">
                             <strong>keywords:</strong>
                             <div class="mt-1">
-                                ${agentData.keywords.map(keyword => 
-                                    `<span class="badge bg-info me-1">${keyword}</span>`
-                                ).join('')}
+                                ${agentData.keywords.map(keyword =>
+                        `<span class="badge bg-info me-1">${keyword}</span>`
+                    ).join('')}
                             </div>
                         </div>
                     `;
                 }
-                
+
                 // Add tools selection section with autofill indicator
                 previewHtml += `
                     <div class="field-item mt-3">
@@ -512,10 +527,10 @@ const AgentCreator = (function() {
                             <strong>Available Tools:</strong>
                             <div class="d-flex align-items-center">
                                 <div class="tools-status me-3">
-                                    ${isToolsAutofilling ? 
-                                        `<span class="autofill-status autofilling"><i class="bi bi-arrow-repeat spin"></i> Auto-selecting tools...</span>` : 
-                                        `<span class="autofill-status complete"><i class="bi bi-check-circle-fill text-success"></i> Tools loaded</span>`
-                                    }
+                                    ${isToolsAutofilling ?
+                        `<span class="autofill-status autofilling"><i class="bi bi-arrow-repeat spin"></i> Auto-selecting tools...</span>` :
+                        `<span class="autofill-status complete"><i class="bi bi-check-circle-fill text-success"></i> Tools loaded</span>`
+                    }
                                 </div>
                                 <div class="tools-actions">
                                     <button type="button" class="btn btn-sm btn-outline-primary" id="select-all-tools">Select All</button>
@@ -530,14 +545,14 @@ const AgentCreator = (function() {
                         
                         <div class="mt-2 tool-selection-container" id="tool-checkboxes-container">
                             <!-- Tool checkboxes will be added here dynamically -->
-                            ${!window.availableTools || window.availableTools.length === 0 ? 
-                                `<div class="loading-indicator">
+                            ${!window.availableTools || window.availableTools.length === 0 ?
+                        `<div class="loading-indicator">
                                     <div class="spinner-border spinner-border-sm text-primary" role="status">
                                         <span class="visually-hidden">Loading tools...</span>
                                     </div>
                                     <span class="ms-2">Loading available tools...</span>
                                 </div>` : ''
-                            }
+                    }
                         </div>
                         
                         <div class="text-muted small mt-2">
@@ -565,30 +580,30 @@ const AgentCreator = (function() {
                         </div>
                     </div>
                 `;
-                
+
                 // If no fields, show default message
                 if (!previewHtml) {
                     previewHtml = '<p class="text-center text-muted">No agent details available yet</p>';
                 }
-                
+
                 previewContainer.innerHTML = previewHtml;
-                
+
                 // Add tool checkboxes
                 this.setupToolInteractionListeners();
             }
         },
-        
+
         setupToolInteractionListeners() {
             // Populate tool checkboxes first
             this.populateToolCheckboxes();
-            
+
             // Tool checkboxes change listener
             this.setupToolCheckboxListeners();
-            
+
             // Select/deselect all buttons
             const selectAllBtn = document.getElementById('select-all-tools');
             const deselectAllBtn = document.getElementById('deselect-all-tools');
-            
+
             if (selectAllBtn) {
                 selectAllBtn.addEventListener('click', () => {
                     const checkboxes = document.querySelectorAll('.tool-checkbox');
@@ -603,7 +618,7 @@ const AgentCreator = (function() {
                     });
                 });
             }
-            
+
             if (deselectAllBtn) {
                 deselectAllBtn.addEventListener('click', () => {
                     const checkboxes = document.querySelectorAll('.tool-checkbox');
@@ -618,14 +633,14 @@ const AgentCreator = (function() {
                     });
                 });
             }
-            
+
             // Search functionality
             const searchInput = document.getElementById('tool-search');
             if (searchInput) {
                 searchInput.addEventListener('input', (e) => {
                     const searchTerm = e.target.value.toLowerCase().trim();
                     const toolItems = document.querySelectorAll('.tool-checkbox-item');
-                    
+
                     toolItems.forEach(item => {
                         const toolName = item.getAttribute('data-tool-name');
                         if (toolName.includes(searchTerm)) {
@@ -637,11 +652,11 @@ const AgentCreator = (function() {
                 });
             }
         },
-        
+
         populateToolCheckboxes() {
             const container = document.getElementById('tool-checkboxes-container');
             if (!container) return;
-            
+
             // Check if we have available tools
             if (!window.availableTools || window.availableTools.length === 0) {
                 container.innerHTML = `
@@ -652,7 +667,7 @@ const AgentCreator = (function() {
                 `;
                 return;
             }
-            
+
             // Show loading indicator if we're autofilling
             if (isToolsAutofilling) {
                 container.innerHTML = `
@@ -665,32 +680,32 @@ const AgentCreator = (function() {
                 `;
                 return;
             }
-            
+
             // Convert current tool array to a set for faster lookup
             const selectedToolsSet = new Set(
                 Array.isArray(extractedAgentData.tools) ? extractedAgentData.tools : []
             );
-            
+
             // Create a copy of available tools for sorting
             const sortedTools = [...window.availableTools];
-            
+
             // Sort tools - checked tools first
             sortedTools.sort((a, b) => {
                 const aIsChecked = selectedToolsSet.has(a.tool_id);
                 const bIsChecked = selectedToolsSet.has(b.tool_id);
-                
+
                 if (aIsChecked && !bIsChecked) return -1;
                 if (!aIsChecked && bIsChecked) return 1;
                 return 0;
             });
-            
+
             // Add tools as checkboxes
             let checkboxesHtml = '<div class="tool-checkboxes">';
-            
+
             sortedTools.forEach(tool => {
                 // Check if this tool is in the selected tools set
                 const isChecked = selectedToolsSet.has(tool.tool_id);
-                
+
                 checkboxesHtml += `
                     <div class="form-check mb-2 tool-checkbox-item" data-tool-name="${tool.name.toLowerCase()}" data-tool-id="${tool.tool_id}">
                         <div class="d-flex align-items-start p-2">
@@ -717,63 +732,63 @@ const AgentCreator = (function() {
                     </div>
                 `;
             });
-            
+
             checkboxesHtml += '</div>';
             container.innerHTML = checkboxesHtml;
         },
-        
+
         setupToolCheckboxListeners() {
             const checkboxes = document.querySelectorAll('.tool-checkbox');
-            
+
             checkboxes.forEach(checkbox => {
                 checkbox.addEventListener('change', () => {
                     // Get all selected tools
                     const selectedTools = Array.from(
                         document.querySelectorAll('.tool-checkbox:checked')
                     ).map(cb => cb.value);
-                    
+
                     console.log('Tool selection changed:', selectedTools);
-                    
+
                     // Update the tools in extracted agent data
                     extractedAgentData.tools = selectedTools;
-                    
+
                     // Check if we have the required fields to enable the create button
                     const hasRequiredFields = DataProcessor.hasRequiredFields(extractedAgentData);
                     UiManager.updateCreateButtonState(hasRequiredFields);
-                    
+
                     // Re-populate the tools to ensure checked ones are at the top
                     this.populateToolCheckboxes();
                 });
             });
         },
-        
+
         // Form UI controls
         updateCreateButtonState(enabled) {
             document.getElementById('create-agent').disabled = !enabled;
         },
-        
+
         getModelSettings() {
             // Use default values since the model options section was removed
-            const model = window.defaultParserModel || "openai/gpt-4o-mini";
+            const model = window.defaultParserModel || "custom-vlm";
             const temperature = window.defaultTemperature !== undefined ? window.defaultTemperature : 0;
             const isMultiAgent = document.getElementById('multi-agent-toggle').checked;
             return { model, temperature, isMultiAgent };
         },
-        
+
         getUserInput() {
             return document.getElementById('user-input').value.trim();
         },
-        
+
         clearUserInput() {
             document.getElementById('user-input').value = '';
         },
-        
+
         populateAgentToolCheckboxes(agentIndex, selectedTools = []) {
             // Cache DOM container lookup
             const containerId = `agent-${agentIndex}-tool-checkboxes-container`;
             const container = document.getElementById(containerId);
             if (!container) return;
-            
+
             // Early return conditions with template literals stored as constants
             const NO_TOOLS_TEMPLATE = `
                 <div class="alert alert-info">
@@ -781,7 +796,7 @@ const AgentCreator = (function() {
                     No available tools found. Please wait for tools to load or check your connection.
                 </div>
             `;
-            
+
             const LOADING_TEMPLATE = `
                 <div class="loading-indicator">
                     <div class="spinner-border spinner-border-sm text-primary" role="status">
@@ -790,42 +805,42 @@ const AgentCreator = (function() {
                     <span class="ms-2">Auto-selecting relevant tools...</span>
                 </div>
             `;
-            
+
             if (!window.availableTools?.length) {
                 container.innerHTML = NO_TOOLS_TEMPLATE;
                 return;
             }
-            
+
             if (isToolsAutofilling) {
                 container.innerHTML = LOADING_TEMPLATE;
                 return;
             }
-            
+
             // Create a Map for O(1) lookup of selected tools
             const selectedToolsMap = new Map(
-                Array.isArray(selectedTools) ? 
-                selectedTools.map(id => [id, true]) : 
-                []
+                Array.isArray(selectedTools) ?
+                    selectedTools.map(id => [id, true]) :
+                    []
             );
-            
+
             // Create a copy of available tools for sorting
             const sortedTools = [...window.availableTools];
-            
+
             // Sort tools - checked tools first
             sortedTools.sort((a, b) => {
                 const aIsChecked = selectedToolsMap.has(a.tool_id);
                 const bIsChecked = selectedToolsMap.has(b.tool_id);
-                
+
                 if (aIsChecked && !bIsChecked) return -1;
                 if (!aIsChecked && bIsChecked) return 1;
                 return 0;
             });
-            
+
             // Use DocumentFragment for better performance
             const fragment = document.createDocumentFragment();
             const toolCheckboxesDiv = document.createElement('div');
             toolCheckboxesDiv.className = 'tool-checkboxes';
-            
+
             // Create a template function for tool HTML
             const createToolHTML = (tool, isChecked) => {
                 const div = document.createElement('div');
@@ -833,7 +848,7 @@ const AgentCreator = (function() {
                 div.dataset.agentIndex = agentIndex;
                 div.dataset.toolName = tool.name.toLowerCase();
                 div.dataset.toolId = tool.tool_id;
-                
+
                 div.innerHTML = `
                     <div class="d-flex align-items-start p-2">
                         <input class="form-check-input agent-tool-checkbox me-3" 
@@ -860,51 +875,51 @@ const AgentCreator = (function() {
                 `;
                 return div;
             };
-            
+
             // Batch process tools
             sortedTools.forEach(tool => {
                 const isChecked = selectedToolsMap.has(tool.tool_id);
                 toolCheckboxesDiv.appendChild(createToolHTML(tool, isChecked));
             });
-            
+
             fragment.appendChild(toolCheckboxesDiv);
             container.innerHTML = ''; // Clear container once
             container.appendChild(fragment);
-            
+
             // Setup event listeners efficiently
             this.setupAgentToolCheckboxListeners(agentIndex);
         },
-        
+
         setupAgentToolCheckboxListeners(agentIndex) {
             // Cache the container to limit DOM traversal
             const container = document.getElementById(`agent-${agentIndex}-tool-checkboxes-container`);
             if (!container) return;
-            
+
             // Use event delegation instead of multiple listeners
             container.addEventListener('change', (event) => {
                 const checkbox = event.target;
                 if (!checkbox.classList.contains('agent-tool-checkbox')) return;
-                
+
                 // Batch DOM operations
                 const selectedTools = Array.from(
                     container.querySelectorAll('.agent-tool-checkbox:checked')
                 ).map(cb => cb.value);
-                
+
                 // Guard clause for multiAgentData
                 if (!multiAgentData?.agent_variations?.[agentIndex]) return;
-                
+
                 // Update tools and button state
                 multiAgentData.agent_variations[agentIndex].tools = selectedTools;
-                
+
                 // Update create button state only when needed
                 const hasMultiAgentData = multiAgentData?.agent_variations?.length > 0;
                 UiManager.updateCreateButtonState(hasMultiAgentData);
-                
+
                 // Re-populate to ensure checked tools are at the top
                 this.populateAgentToolCheckboxes(agentIndex, selectedTools);
             });
         },
-        
+
         setupAgentToolInteractionListeners() {
             // Agent-specific tool buttons
             document.querySelectorAll('.select-all-agent-tools').forEach(button => {
@@ -922,7 +937,7 @@ const AgentCreator = (function() {
                     });
                 });
             });
-            
+
             document.querySelectorAll('.deselect-all-agent-tools').forEach(button => {
                 const agentIndex = button.getAttribute('data-agent-index');
                 button.addEventListener('click', () => {
@@ -938,14 +953,14 @@ const AgentCreator = (function() {
                     });
                 });
             });
-            
+
             // Search functionality for agent-specific tools
             document.querySelectorAll('.agent-tool-search').forEach(searchInput => {
                 const agentIndex = searchInput.getAttribute('data-agent-index');
                 searchInput.addEventListener('input', (e) => {
                     const searchTerm = e.target.value.toLowerCase().trim();
                     const toolItems = document.querySelectorAll(`.agent-tool-checkbox-item[data-agent-index="${agentIndex}"]`);
-                    
+
                     toolItems.forEach(item => {
                         const toolName = item.getAttribute('data-tool-name');
                         if (toolName.includes(searchTerm)) {
@@ -957,7 +972,7 @@ const AgentCreator = (function() {
                 });
             });
         },
-        
+
         // Update the status indicator for tool autofill
         updateToolAutofillStatus(isAutofilling) {
             document.querySelectorAll('.autofill-status').forEach(statusElement => {
@@ -979,8 +994,8 @@ const AgentCreator = (function() {
         mergeData(existingData, newData) {
             //POTENSI NOT USED
             console.log('Method called: DataProcessor.mergeData');
-            const result = {...existingData};
-            
+            const result = { ...existingData };
+
             for (const [key, value] of Object.entries(newData)) {
                 if (value && value !== "") {
                     if (Array.isArray(value) && Array.isArray(result[key])) {
@@ -991,10 +1006,10 @@ const AgentCreator = (function() {
                     }
                 }
             }
-            
+
             return result;
         },
-        
+
         processToolsValue(value) {
             // Handle tools field special case
             if (Array.isArray(value) && value.length > 0) {
@@ -1019,7 +1034,7 @@ const AgentCreator = (function() {
                 } catch (e) {
                     // Parsing failed, but don't fallback to default yet
                     console.log(`JSON parsing failed: ${e.message}`);
-                    
+
                     // If it's a string, but not JSON, it might be a comma-separated list
                     if (value.includes(',')) {
                         const items = value.split(',').map(item => item.trim()).filter(Boolean);
@@ -1030,15 +1045,15 @@ const AgentCreator = (function() {
                     }
                 }
             }
-            
+
             // Return empty array if no valid tools found
             console.log(`No valid tools found, returning empty array`);
             return [];
         },
-        
+
         updateFieldWithAutofillValue(data, field, value) {
-            const result = {...data};
-            
+            const result = { ...data };
+
             if (field === 'tools') {
                 console.log(`Processing tools value:`, value);
                 result[field] = this.processToolsValue(value);
@@ -1046,36 +1061,36 @@ const AgentCreator = (function() {
             } else {
                 result[field] = value;
             }
-            
+
             return result;
         },
-        
+
         hasRequiredFields(data) {
             const requiredFields = ['agent_name', 'description'];
             return requiredFields.every(field => data[field] && data[field] !== '');
         },
-        
+
         generateResponseFromExtractedData(extractedData) {
             // Check if anything was extracted
             const extractedFields = Object.entries(extractedData)
                 .filter(([_, value]) => value && value !== "")
                 .map(([field, _]) => field);
-            
+
             if (extractedFields.length === 0) {
                 return "I couldn't extract any specific details from your description. Please provide more information about what you want this agent to do, its purpose, and any specific capabilities it should have.";
             }
-            
+
             // Determine if we have enough data to create a meaningful agent
             const hasCoreFunctionality = extractedData.agent_name && extractedData.description;
-            
+
             // Generate response based on what was extracted
             let response = "Thanks for your description! ";
-            
+
             if (hasCoreFunctionality) {
                 // We have good basic information
                 response += `I've extracted information for your agent including: ${extractedFields.join(', ')}. `;
                 response += "You can review the details in the preview panel and create the agent when ready. ";
-                
+
                 // Suggest more information that could be added
                 if (!extractedData.tools || extractedData.tools.length === 0) {
                     response += "You may want to select some tools for your agent before creating it.";
@@ -1085,22 +1100,22 @@ const AgentCreator = (function() {
             } else {
                 // We're missing core information
                 response += `I was able to extract some information (${extractedFields.join(', ')}), but I need more details. `;
-                
+
                 const missingRequired = [];
                 if (!extractedData.agent_name) missingRequired.push("name");
                 if (!extractedData.description) missingRequired.push("description");
-                
+
                 response += `Please provide${missingRequired.length > 0 ? ` the agent's ${missingRequired.join(' and ')} and` : ''} more specific information about what this agent should do. `;
                 response += "For example, tell me about its purpose, how it should interact with users, or what tasks it should perform.";
             }
-            
+
             return response;
         },
-        
+
         prepareAgentDataForCreation(data) {
             // Make a deep copy to avoid modifying the original
             const agentData = JSON.parse(JSON.stringify(data));
-            
+
             // Process tools as array of UUIDs
             if (agentData.tools && Array.isArray(agentData.tools)) {
                 // Keep as is, already processed
@@ -1109,32 +1124,32 @@ const AgentCreator = (function() {
             } else {
                 agentData.tools = [];
             }
-            
+
             // Ensure on_status is a boolean
             agentData.on_status = agentData.on_status !== false;
-            
+
             // Handle company_id - set to null if empty string or not provided
             if (!agentData.company_id || agentData.company_id === '') {
                 agentData.company_id = null;
             }
-            
+
             return agentData;
         },
-        
+
         prepareMultiAgentDataForCreation(commonData, variations) {
             const agents = [];
-            
+
             // For each variation, create a complete agent by merging with common data
             variations.forEach(variation => {
                 // Start with common data
                 const agentData = { ...commonData };
-                
+
                 // Convert agent_style to agent_name for consistency if needed
                 if (agentData.agent_style && !agentData.agent_name) {
                     agentData.agent_name = agentData.agent_style;
                     delete agentData.agent_style;
                 }
-                
+
                 // Merge variation-specific fields
                 for (const [key, value] of Object.entries(variation)) {
                     // Convert agent_style to agent_name for consistency
@@ -1154,21 +1169,21 @@ const AgentCreator = (function() {
                         agentData[key] = value;
                     }
                 }
-                
+
                 // Ensure agent has a name
                 if (!agentData.agent_name) {
                     agentData.agent_name = variation.agent_name || 'Unnamed Agent';
                 }
-                
+
                 // Ensure agent has a tools array
                 if (!agentData.tools) {
                     agentData.tools = [];
                 }
-                
+
                 // Prepare and add the agent
                 agents.push(this.prepareAgentDataForCreation(agentData));
             });
-            
+
             return agents;
         }
     };
@@ -1178,16 +1193,16 @@ const AgentCreator = (function() {
         async init() {
             try {
                 console.log('Initializing Agent Creator...');
-                
+
                 // Add custom CSS for tool selection
                 this.addToolSelectionStyles();
-                
+
                 // Show initial loading state
                 UiManager.addBotMessage("Loading agent creator...");
-                
+
                 // Set up event listeners
                 this.setupEventListeners();
-                
+
                 // Initialize example boxes visibility based on multi-agent mode
                 const isMultiMode = document.getElementById('multi-agent-toggle').checked;
                 document.querySelectorAll('.example-box.single-agent').forEach(box => {
@@ -1196,23 +1211,23 @@ const AgentCreator = (function() {
                 document.querySelectorAll('.example-box.multi-agent').forEach(box => {
                     box.style.display = isMultiMode ? 'block' : 'none';
                 });
-                
+
                 // Clear the initial loading message
                 UiManager.clearChat();
-                
+
                 // Start with initial bot message and loading indicator
                 UiManager.addBotMessage("Loading available agent tools...");
-                
+
                 // Load initial data in parallel
                 await Promise.all([
                     this.loadAvailableFields(),
                     this.loadAvailableTools()
                 ]);
-                
+
                 // Clear chat and add welcome message
                 UiManager.clearChat();
                 UiManager.addBotMessage("Give me a detailed description of an agent you would like to make.");
-                
+
                 console.log('Agent Creator initialized successfully');
             } catch (error) {
                 console.error("Error initializing agent creator:", error);
@@ -1221,13 +1236,13 @@ const AgentCreator = (function() {
                 Utils.showNotification("Failed to initialize agent creator. Please reload the page.", "danger");
             }
         },
-        
+
         setupEventListeners() {
             // Send button
             document.getElementById('send-message').addEventListener('click', () => {
                 this.handleUserInput();
             });
-            
+
             // Send on Enter key (but allow shift+enter for new lines)
             document.getElementById('user-input').addEventListener('keydown', (e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
@@ -1235,48 +1250,56 @@ const AgentCreator = (function() {
                     this.handleUserInput();
                 }
             });
-            
+
             // Show field help modal
             document.getElementById('show-field-help').addEventListener('click', () => {
                 UiManager.showFieldHelpModal();
             });
-            
+
             // Create agent button
             document.getElementById('create-agent').addEventListener('click', () => {
                 this.createAgent();
             });
-            
+
             // Reset agent button
             document.getElementById('reset-agent').addEventListener('click', () => {
                 this.resetAgentData();
             });
-            
+
             // Temperature slider and model select were removed - handle this gracefully
             const tempSlider = document.getElementById('temperature');
             const tempValue = document.getElementById('temp-value');
-            
+
             if (tempSlider && tempValue) {
                 tempSlider.addEventListener('input', () => {
                     tempValue.textContent = tempSlider.value;
                 });
             }
-            
+
             // Add event listener for multi-agent toggle
             document.getElementById('multi-agent-toggle').addEventListener('change', (e) => {
                 isMultiAgentMode = e.target.checked;
-                
-                // Toggle visibility of example boxes based on multi-agent mode
-                const singleAgentExamples = document.querySelectorAll('.example-box.single-agent');
-                const multiAgentExamples = document.querySelectorAll('.example-box.multi-agent');
-                
-                singleAgentExamples.forEach(box => {
-                    box.style.display = isMultiAgentMode ? 'none' : 'block';
+
+                // Toggle visibility of example buttons based on multi-agent mode
+                const singleAgentExamples = document.querySelectorAll('.example-btn.single-agent');
+                const multiAgentExamples = document.querySelectorAll('.example-btn.multi-agent');
+
+                singleAgentExamples.forEach(btn => {
+                    if (isMultiAgentMode) {
+                        btn.classList.add('d-none');
+                    } else {
+                        btn.classList.remove('d-none');
+                    }
                 });
-                
-                multiAgentExamples.forEach(box => {
-                    box.style.display = isMultiAgentMode ? 'block' : 'none';
+
+                multiAgentExamples.forEach(btn => {
+                    if (isMultiAgentMode) {
+                        btn.classList.remove('d-none');
+                    } else {
+                        btn.classList.add('d-none');
+                    }
                 });
-                
+
                 // Update UI based on toggle state
                 if (isMultiAgentMode) {
                     UiManager.addBotMessage("Multi-agent mode enabled. Please describe multiple agents and how they differ from each other.");
@@ -1289,19 +1312,21 @@ const AgentCreator = (function() {
                     }
                 }
             });
-            
-            // Add event listeners for example boxes
-            document.querySelectorAll('.example-box').forEach(box => {
-                box.addEventListener('click', () => {
-                    const exampleText = box.getAttribute('data-example');
+
+            // Add event listeners for example buttons
+            document.querySelectorAll('.example-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const exampleText = btn.getAttribute('data-example');
                     if (exampleText) {
                         document.getElementById('user-input').value = exampleText;
                         // Focus on the input field
                         document.getElementById('user-input').focus();
+                        // Trigger input event to resize textarea
+                        document.getElementById('user-input').dispatchEvent(new Event('input'));
                     }
                 });
             });
-            
+
             // Listen for the custom event for loading recommended tools
             document.addEventListener('loadRecommendedTools', (event) => {
                 const agentData = event.detail;
@@ -1315,103 +1340,103 @@ const AgentCreator = (function() {
                 }
             });
         },
-        
+
         async loadAvailableFields() {
             try {
                 // Get all field information in a single API call
                 const fieldMetadata = await ApiService.getFieldMetadata();
-                
+
                 // Extract available fields and their descriptions from the single response
                 availableFields = fieldMetadata.fields || [];
-                
+
                 // Create field descriptions array with the data we received
                 const fieldDescriptions = availableFields.map(field => ({
                     name: field,
                     description: fieldMetadata.descriptions?.[field] || 'No description available.'
                 }));
-                
+
                 UiManager.updateFieldDescriptions(fieldDescriptions);
             } catch (error) {
                 console.error('Error loading field information:', error);
                 Utils.showNotification('Error loading field information. Using default fields.', 'warning');
             }
         },
-        
+
         async loadAvailableTools() {
             try {
                 // Get available tools
                 console.log('Starting to load available tools...');
                 const tools = await ApiService.getAvailableTools();
-                
+
                 // Tools are already stored globally by ApiService.getAvailableTools
                 console.log(`Successfully loaded ${tools.length} tools for agent creation`);
                 return tools;
             } catch (error) {
                 console.error('Error loading available tools:', error);
                 Utils.showNotification('Error loading available tools. Some functionality may be limited.', 'warning');
-                
+
                 // Retry after a short delay (3 seconds)
                 console.log('Scheduling retry for tool loading...');
                 setTimeout(() => {
                     this.retryLoadTools();
                 }, 3000);
-                
+
                 return [];
             }
         },
-        
+
         async retryLoadTools() {
             try {
                 console.log('Retrying tool loading...');
                 const tools = await ApiService.getAvailableTools();
-                
+
                 console.log(`Successfully loaded ${tools.length} tools on retry`);
-                
+
                 // If we're displaying the agent preview with tools, update it
                 if (extractedAgentData && extractedAgentData.tools) {
                     UiManager.updateAgentPreview(extractedAgentData);
                 }
-                
+
                 return tools;
             } catch (error) {
                 console.error('Retry failed to load tools:', error);
                 return [];
             }
         },
-        
+
         async handleUserInput() {
             if (isProcessing) return;
-            
+
             const userInput = UiManager.getUserInput();
             if (!userInput) return;
-            
+
             // Add user message to chat
             UiManager.addUserMessage(userInput);
             UiManager.clearUserInput();
-            
+
             // Set processing state
             isProcessing = true;
             UiManager.addBotTypingIndicator();
-            
+
             try {
                 // Get model settings
                 const { model, temperature, isMultiAgent } = UiManager.getModelSettings();
-                
+
                 // Set the global multi-agent mode flag
                 isMultiAgentMode = isMultiAgent;
-                
+
                 // Process the user input - choose whether to use multi-agent or standard parsing
                 if (isMultiAgentMode) {
                     await this.processMultiAgentInput(userInput, model, temperature);
                 } else {
                     await this.processUserInput(userInput, model, temperature);
                 }
-                
+
                 // Update button state based on data
-                const hasRequiredFields = isMultiAgentMode ? 
+                const hasRequiredFields = isMultiAgentMode ?
                     (multiAgentData && multiAgentData.agent_variations && multiAgentData.agent_variations.length > 0) :
                     DataProcessor.hasRequiredFields(extractedAgentData);
-                    
+
                 UiManager.updateCreateButtonState(hasRequiredFields);
             } catch (error) {
                 // Handle error
@@ -1422,33 +1447,33 @@ const AgentCreator = (function() {
                 isProcessing = false;
             }
         },
-        
+
         async processUserInput(userInput, model, temperature) {
             try {
                 // Ensure tools are loaded
                 if (!window.availableTools || window.availableTools.length === 0) {
                     await this.loadAvailableTools();
                 }
-                
+
                 // Get stream URL for user input parsing
                 const streamUrl = ApiService.getParseStreamUrl();
                 console.log('Using streaming endpoint:', streamUrl);
-                
+
                 // Create the request body
                 const requestBody = {
                     user_input: userInput,
                     model_name: model,
                     temperature: temperature
                 };
-                
+
                 if (Object.keys(extractedAgentData).length > 0) {
                     requestBody.existing_field_values = extractedAgentData;
                 }
-                
+
                 // Reset processed fields to track what we've received in the stream
                 const processedFields = {};
                 const accumulatedFields = {};
-                
+
                 try {
                     // Create headers with authorization
                     const headers = {
@@ -1456,64 +1481,72 @@ const AgentCreator = (function() {
                         'Accept': 'text/event-stream',
                         ...API.getHeaders()
                     };
-                    
+
                     // Make the streaming request
                     const response = await fetch(streamUrl, {
                         method: 'POST',
                         headers: headers,
                         body: JSON.stringify(requestBody)
                     });
-                    
+
                     if (!response.ok) {
                         throw new Error(`HTTP error! status: ${response.status}`);
                     }
-                    
+
                     // Create a reader for the stream
                     const reader = response.body.getReader();
                     const decoder = new TextDecoder();
                     let buffer = '';
-                    
+
                     let fieldUpdateReceived = false;
-                    
+
                     // Process the stream
                     while (true) {
                         const { done, value } = await reader.read();
-                        
+
                         if (done) {
                             console.log('Stream complete');
                             break;
                         }
-                        
+
                         // Decode the chunk and add it to the buffer
                         buffer += decoder.decode(value, { stream: true });
-                        
+
                         // Process complete events in the buffer
                         let eventEnd = buffer.indexOf('\n\n');
                         while (eventEnd > -1) {
                             const eventData = buffer.substring(0, eventEnd);
                             buffer = buffer.substring(eventEnd + 2);
-                            
+
                             // Process the event
                             const eventProcessed = this.processStreamEvent(
-                                eventData, 
-                                processedFields, 
+                                eventData,
+                                processedFields,
                                 accumulatedFields
                             );
-                            
+
                             if (eventProcessed) {
                                 fieldUpdateReceived = true;
                             }
-                            
+
                             // Look for the next event
                             eventEnd = buffer.indexOf('\n\n');
                         }
                     }
-                    
+
                     // If we didn't receive any field updates, fall back to non-streaming method
                     if (!fieldUpdateReceived) {
                         console.log('No field updates received from stream');
                         UiManager.removeTypingIndicator();
-                        UiManager.addBotMessage("I couldn't extract any information from your description. Please provide more specific details about what you want the agent to do.");
+                        console.log('Raw buffer content:', buffer);
+
+                        // Show more descriptive error if we have raw content that failed to parse
+                        let errorMessage = "I couldn't extract any information from your description. Please provide more specific details about what you want the agent to do.";
+                        if (buffer && buffer.length > 0) {
+                            errorMessage += ` (Debug: Raw output received but failed to parse: ${buffer.substring(0, 100)}...)`;
+                        }
+
+                        UiManager.addBotMessage(errorMessage);
                         return;
                     } else {
                         // Update extractedAgentData with all accumulated fields
@@ -1527,7 +1560,7 @@ const AgentCreator = (function() {
                                 }
                             }
                         }
-                        
+
                         // Always set on_status to true regardless of what was extracted
                         extractedAgentData.on_status = true;
                     }
@@ -1545,7 +1578,7 @@ const AgentCreator = (function() {
                             model_name: model,
                             temperature: temperature
                         });
-                        
+
                         if (keywordsResponse && Array.isArray(keywordsResponse.keywords)) {
                             extractedAgentData.keywords = keywordsResponse.keywords;
                         }
@@ -1557,16 +1590,16 @@ const AgentCreator = (function() {
 
                 // Then autofill tools
                 await this.autofillTools();
-                
+
                 // Generate response showing what was extracted
                 // Tempat mengisi field yang sudah diisi
                 const botResponse = DataProcessor.generateResponseFromExtractedData(extractedAgentData);
-                
+
                 // Update UI
                 UiManager.removeTypingIndicator();
                 UiManager.addBotMessage(botResponse);
                 UiManager.updateAgentPreview(extractedAgentData);
-                
+
                 // Trigger recommendation loading
                 if (extractedAgentData.agent_name || extractedAgentData.description) {
                     const event = new CustomEvent('loadRecommendedTools', { detail: extractedAgentData });
@@ -1579,13 +1612,13 @@ const AgentCreator = (function() {
                 throw error;
             }
         },
-        
+
         processStreamEvent(eventData, processedFields, accumulatedFields) {
             // Split the event into lines
             const lines = eventData.split('\n');
             let eventType = '';
             let data = '';
-            
+
             // Parse the event
             for (const line of lines) {
                 if (line.startsWith('event:')) {
@@ -1594,55 +1627,55 @@ const AgentCreator = (function() {
                     data = line.substring(5).trim();
                 }
             }
-            
+
             // Skip if no data
             if (!data) {
                 return false;
             }
-            
+
             // If data is [DONE], we're done
             if (data === '[DONE]') {
                 console.log('Stream finished');
                 return false;
             }
-            
+
             try {
                 // Parse the data as JSON
                 const jsonData = JSON.parse(data);
-                
+
                 if (eventType === 'field_update') {
                     // Process field update event
                     for (const [field, value] of Object.entries(jsonData)) {
                         // Track that we've processed this field
                         processedFields[field] = true;
-                        
+
                         // Update accumulated field data
                         accumulatedFields[field] = value;
-                        
+
                         // Update extractedAgentData in real-time
                         if (field === 'tools') {
                             extractedAgentData.tools = DataProcessor.processToolsValue(value);
                         } else {
                             extractedAgentData[field] = value;
                         }
-                        
+
                         // Always set on_status to true
                         extractedAgentData.on_status = true;
-                        
+
                         // Update UI in real-time - pass the isMultiAgentMode flag to maintain multi-agent view
                         UiManager.updateAgentPreview(extractedAgentData, isMultiAgentMode);
                     }
                     return true;
                 }
-                
+
                 return false;
             } catch (error) {
                 console.error('Error processing stream event:', error, eventData);
                 return false;
             }
         },
-        
-        
+
+
         async autofillTools() {
             try {
                 console.log('Starting autofillTools method');
@@ -1707,7 +1740,7 @@ const AgentCreator = (function() {
 
                         const suggestedTools = await getToolSuggestions(agentData);
                         multiAgentData.agent_variations[index].tools = suggestedTools;
-                        
+
                         // Update UI for this agent's tools
                         updateToolCheckboxes(suggestedTools, `agent-${index}-tool-checkboxes-container`);
                     }));
@@ -1725,47 +1758,47 @@ const AgentCreator = (function() {
                 UiManager.updateAgentPreview(extractedAgentData, isMultiAgentMode);
             }
         },
-        
+
         async autofillAgentVariationTools() {
             console.log('Autofilling tools for agent variations');
-            
+
             try {
                 // Set autofilling status for multi-agent mode
                 isToolsAutofilling = true;
                 UiManager.updateToolAutofillStatus(true);
                 UiManager.updateAgentPreview(extractedAgentData, true);
-                
+
                 // Process each agent variation
                 for (let i = 0; i < multiAgentData.agent_variations.length; i++) {
                     const agent = multiAgentData.agent_variations[i];
-                    
+
                     // Only proceed if we have agent name or description
                     if (!agent.agent_name && !agent.description) continue;
-                    
+
                     console.log(`Autofilling tools for agent variation ${i}: ${agent.agent_name}`);
-                    
+
                     try {
                         // Use agent-specific keywords if available, otherwise fall back to common keywords
-                        const agentKeywords = agent.keywords && Array.isArray(agent.keywords) && agent.keywords.length > 0 
-                            ? agent.keywords 
+                        const agentKeywords = agent.keywords && Array.isArray(agent.keywords) && agent.keywords.length > 0
+                            ? agent.keywords
                             : (multiAgentData.common_attributes.keywords || []);
-                        
+
                         // Build agent data for autofill request
                         const agentData = {
                             agent_name: agent.agent_name || multiAgentData.common_attributes.agent_name || '',
                             description: agent.description || multiAgentData.common_attributes.description || '',
                             keywords: agentKeywords
                         };
-                        
+
                         // Get tool recommendations for this agent
                         const toolsAutofillData = await ApiService.autofillField('tools', agentData, '');
-                        
+
                         // Process the tools suggestion
                         let suggestedTools = DataProcessor.processToolsValue(toolsAutofillData.autofilled_value);
-                        
+
                         // Update the agent variation data with recommended tools
                         multiAgentData.agent_variations[i].tools = suggestedTools;
-                        
+
                         console.log(`Suggested tools for agent ${i} (${agent.agent_name}):`, suggestedTools);
                     } catch (error) {
                         console.warn(`Error autofilling tools for agent ${i}:`, error);
@@ -1773,17 +1806,17 @@ const AgentCreator = (function() {
                         multiAgentData.agent_variations[i].tools = [];
                     }
                 }
-                
+
                 // Update UI for each agent's tools
                 for (let i = 0; i < multiAgentData.agent_variations.length; i++) {
                     UiManager.populateAgentToolCheckboxes(i, multiAgentData.agent_variations[i].tools || []);
                 }
-                
+
                 // Update autofill status and UI
                 isToolsAutofilling = false;
                 UiManager.updateToolAutofillStatus(false);
                 UiManager.updateAgentPreview(extractedAgentData, true);
-                
+
             } catch (error) {
                 console.warn('Error autofilling agent variation tools:', error);
                 // Reset autofilling state on error
@@ -1792,47 +1825,47 @@ const AgentCreator = (function() {
                 UiManager.updateAgentPreview(extractedAgentData, true);
             }
         },
-        
+
         resetAgentData() {
             extractedAgentData = {};
             multiAgentData = null;
             isMultiAgentMode = false;
-            
+
             // Reset UI
             UiManager.clearChat();
             UiManager.updateAgentPreview({});
             UiManager.updateCreateButtonState(false);
-            
+
             // Reset multi-agent toggle
             document.getElementById('multi-agent-toggle').checked = false;
         },
-        
+
         async createAgent() {
             if (isMultiAgentMode && multiAgentData && multiAgentData.agent_variations && multiAgentData.agent_variations.length > 0) {
                 return this.createMultipleAgents();
             }
-            
+
             if (Object.keys(extractedAgentData).length === 0) {
                 Utils.showNotification("No agent data to create", "warning");
                 return;
             }
-            
+
             try {
                 // Ensure we have the latest selection of tools from the UI
                 this.updateToolSelectionFromUI();
-                
+
                 // Prepare agent data
                 const agentData = DataProcessor.prepareAgentDataForCreation(extractedAgentData);
-                
+
                 console.log('Creating agent with data:', agentData);
-                
+
                 // Call API to create agent
                 await API.post('/agents', agentData);
-                
+
                 // Show success message
                 Utils.showNotification(`Agent "${agentData.agent_name}" created successfully!`, "success");
                 UiManager.addBotMessage(`Great! I've created your agent "${agentData.agent_name}" with ${agentData.tools.length} tools. You can now find it in the Agents list.`);
-                
+
                 // Reset after a short delay
                 setTimeout(() => {
                     this.resetAgentData();
@@ -1849,19 +1882,19 @@ const AgentCreator = (function() {
             const selectedTools = Array.from(
                 document.querySelectorAll('.tool-checkbox:checked')
             ).map(cb => cb.value);
-            
+
             console.log('Final tool selection for agent creation:', selectedTools);
-            
+
             // Update the extracted agent data
             extractedAgentData.tools = selectedTools;
-            
+
             return selectedTools;
         },
 
         addToolSelectionStyles() {
             // Create a style element
             const style = document.createElement('style');
-            
+
             // Define the CSS styles
             style.textContent = `
                 .tool-selection-container {
@@ -2005,7 +2038,7 @@ const AgentCreator = (function() {
                     to { transform: rotate(360deg); }
                 }
             `;
-            
+
             // Append the style element to the head
             document.head.appendChild(style);
         },
@@ -2016,39 +2049,39 @@ const AgentCreator = (function() {
                 console.error('Cannot find MCPHub tools container element');
                 return;
             }
-            
+
             try {
                 console.log('Loading MCPHub tool recommendations for:', agentData);
-                
+
                 // Show loading indicator (already present in HTML)
-                
+
                 // Prepare keyword data - collect all keywords when in multi-agent mode
                 let allKeywords = [];
-                
+
                 if (isMultiAgentMode && multiAgentData && multiAgentData.agent_variations && multiAgentData.agent_variations.length > 0) {
                     console.log('Multi-agent mode detected - collecting keywords from all variations');
-                    
+
                     // Start with common keywords if available
                     if (multiAgentData.common_attributes && multiAgentData.common_attributes.keywords) {
                         allKeywords = [...multiAgentData.common_attributes.keywords];
                     }
-                    
+
                     // Add keywords from each agent variation
                     multiAgentData.agent_variations.forEach(agent => {
                         if (agent.keywords && Array.isArray(agent.keywords) && agent.keywords.length > 0) {
                             allKeywords = [...allKeywords, ...agent.keywords];
                         }
                     });
-                    
+
                     // Remove duplicates
                     allKeywords = [...new Set(allKeywords)];
-                    
+
                     console.log('Combined unique keywords from all agents:', allKeywords);
                 } else {
                     // Single agent mode - use keywords from agent data
                     allKeywords = agentData.keywords || [];
                 }
-                
+
                 // Prepare request data
                 const requestData = {
                     field_name: 'mcphub_recommended_tools',
@@ -2059,18 +2092,18 @@ const AgentCreator = (function() {
                     available_tools: [],
                     return_tool_ids: false
                 };
-                
+
                 console.log('Fetching MCPHub tool recommendations with data:', requestData);
-                
+
                 // Make request to the backend
                 const response = await ApiService.makeRequest('/agent-creator-autofill/invoke', 'POST', requestData);
-                
+
                 console.log('MCPHub recommendations response:', response);
-                
+
                 // Handle the response
                 if (response && response.autofilled_value) {
                     let recommendedTools = [];
-                    
+
                     // Parse the response
                     if (typeof response.autofilled_value === 'string') {
                         try {
@@ -2079,30 +2112,30 @@ const AgentCreator = (function() {
                             console.warn('Error parsing MCPHub JSON:', e);
                             // Use defaults if parsing fails
                             recommendedTools = [
-                                {"name": "GitHub Tools", "description": "GitHub integration", "url": "https://github.com"},
-                                {"name": "Google Calendar", "description": "Calendar integration", "url": "https://calendar.google.com"}
+                                { "name": "GitHub Tools", "description": "GitHub integration", "url": "https://github.com" },
+                                { "name": "Google Calendar", "description": "Calendar integration", "url": "https://calendar.google.com" }
                             ];
                         }
                     } else if (Array.isArray(response.autofilled_value)) {
                         recommendedTools = response.autofilled_value;
                     }
-                    
+
                     console.log('Parsed MCPHub tools:', recommendedTools);
-                    
+
                     // Only update agent preview in multi-agent mode if needed
                     // Remove the conditional to ensure we always update the UI regardless
                     // of multi-agent mode state
-                    
+
                     // Render the recommended tools regardless of multi-agent mode
                     if (recommendedTools.length > 0) {
                         let toolsHtml = '<ul class="list-group">';
-                        
+
                         recommendedTools.forEach(tool => {
                             // Get tool properties
                             const toolName = tool.name || 'Unknown Tool';
                             const toolDescription = tool.description || 'No description available';
                             const toolUrl = tool.url || '#';
-                            
+
                             toolsHtml += `
                                 <li class="list-group-item d-flex justify-content-between align-items-start">
                                     <div class="ms-2 me-auto">
@@ -2113,10 +2146,10 @@ const AgentCreator = (function() {
                                 </li>
                             `;
                         });
-                        
+
                         toolsHtml += '</ul>';
                         mcphubToolsContainer.innerHTML = toolsHtml;
-                        
+
                         // Make sure container is visible
                         mcphubToolsContainer.style.display = 'block';
                     } else {
@@ -2127,7 +2160,7 @@ const AgentCreator = (function() {
                             </div>
                         `;
                     }
-                    
+
                 } else {
                     // No valid response
                     mcphubToolsContainer.innerHTML = `
@@ -2138,12 +2171,12 @@ const AgentCreator = (function() {
                 }
             } catch (error) {
                 console.error('Error loading MCPHub recommendations:', error);
-                
+
                 // Log detailed error information
                 if (error.status) console.error('Status:', error.status);
                 if (error.detail) console.error('Detail:', error.detail);
                 if (error.message) console.error('Message:', error.message);
-                
+
                 // Show error message in UI
                 if (mcphubToolsContainer) {
                     mcphubToolsContainer.innerHTML = `
@@ -2152,7 +2185,7 @@ const AgentCreator = (function() {
                         </div>
                     `;
                 }
-                
+
                 // Ensure multi-agent view is restored if needed
                 if (isMultiAgentMode && multiAgentData && multiAgentData.agent_variations && multiAgentData.agent_variations.length > 0) {
                     setTimeout(() => {
@@ -2168,7 +2201,7 @@ const AgentCreator = (function() {
                 if (!window.availableTools || window.availableTools.length === 0) {
                     await this.loadAvailableTools();
                 }
-                
+
                 // Create the request body
                 const requestBody = {
                     user_input: userInput,
@@ -2176,48 +2209,48 @@ const AgentCreator = (function() {
                     temperature: temperature,
                     existing_data: Object.keys(extractedAgentData).length > 0 ? extractedAgentData : null
                 };
-                
+
                 // Make request to parse multi-agent input
                 const multiAgentResponse = await ApiService.makeRequest('/user-input/parse-multi-agent', 'POST', requestBody);
                 console.log('Multi-agent parse response:', multiAgentResponse);
-                
+
                 // Normalize agent data structure
                 this.normalizeAgentData(multiAgentResponse);
-                
+
                 // Store the multi-agent data
                 multiAgentData = multiAgentResponse;
-                
+
                 // Handle special cases
                 if (multiAgentResponse.need_more_info) {
                     UiManager.removeTypingIndicator();
                     UiManager.addBotMessage(`I need more information about the agents you want to create. ${multiAgentResponse.missing_info || 'Please provide details about each agent and how they differ.'}`);
                     return;
                 }
-                
+
                 if (!multiAgentResponse.has_multi_agent) {
                     UiManager.addBotMessage("I couldn't detect multiple agents in your description. Switching to single agent mode.");
                     return await this.processUserInput(userInput, model, temperature);
                 }
-                
+
                 // Update common attributes
                 Object.assign(extractedAgentData, multiAgentResponse.common_attributes || {});
-                
+
                 // Extract keywords for all agents in parallel
                 await this.extractKeywordsForAllAgents(multiAgentResponse, model, temperature);
-                
+
                 // Generate and display response
                 const botResponse = this.generateMultiAgentResponse(multiAgentResponse);
                 UiManager.removeTypingIndicator();
                 UiManager.addBotMessage(botResponse);
                 UiManager.updateAgentPreview(extractedAgentData, true);
-                
+
                 // Autofill tools and trigger recommendations
                 await this.autofillTools();
-                
+
                 if (multiAgentData?.agent_variations?.length > 0) {
                     document.dispatchEvent(new CustomEvent('loadRecommendedTools', { detail: multiAgentData }));
                 }
-                
+
             } catch (error) {
                 console.error('Error processing multi-agent input:', error);
                 UiManager.removeTypingIndicator();
@@ -2232,7 +2265,7 @@ const AgentCreator = (function() {
                 response.common_attributes.agent_name = response.common_attributes.agent_style;
                 delete response.common_attributes.agent_style;
             }
-            
+
             if (response.agent_variations) {
                 response.agent_variations.forEach(agent => {
                     if (agent.agent_style && !agent.agent_name) {
@@ -2295,13 +2328,13 @@ const AgentCreator = (function() {
             };
 
             let botResponse = `I've detected ${response.agent_count} agents in your description.\n\n`;
-            
+
             // Add common attributes
             botResponse += "**Common attributes for all agents:**\n";
             Object.entries(response.common_attributes || {}).forEach(([field, value]) => {
                 botResponse += formatField(field, value);
             });
-            
+
             // Add agent variations
             botResponse += "\n**Agent variations:**\n";
             response.agent_variations.forEach((agent, index) => {
@@ -2312,7 +2345,7 @@ const AgentCreator = (function() {
                     }
                 });
             });
-            
+
             return botResponse;
         },
 
@@ -2323,15 +2356,15 @@ const AgentCreator = (function() {
                     multiAgentData.common_attributes,
                     multiAgentData.agent_variations
                 );
-                
+
                 // No need to add tools to each agent here as they are already included
                 // from the agent_variations data (each agent has its own tools)
-                
+
                 console.log('Creating multiple agents:', agents);
-                
+
                 // Show creating message
                 UiManager.addBotMessage(`Creating ${agents.length} agents...`);
-                
+
                 // Create each agent sequentially
                 const results = [];
                 for (let i = 0; i < agents.length; i++) {
@@ -2345,7 +2378,7 @@ const AgentCreator = (function() {
                             data: response
                         });
                     } catch (error) {
-                        console.error(`Error creating agent ${i+1}:`, error);
+                        console.error(`Error creating agent ${i + 1}:`, error);
                         results.push({
                             success: false,
                             name: agentData.agent_name,
@@ -2353,16 +2386,16 @@ const AgentCreator = (function() {
                         });
                     }
                 }
-                
+
                 // Generate response based on results
                 const successCount = results.filter(r => r.success).length;
-                
+
                 let responseMessage = `Created ${successCount} out of ${agents.length} agents:\n\n`;
                 results.forEach((result, index) => {
                     const toolCount = agents[index].tools ? agents[index].tools.length : 0;
-                    responseMessage += `${index+1}. ${result.name}: ${result.success ? `✅ Success (${toolCount} tools)` : '❌ Failed - ' + result.error}\n`;
+                    responseMessage += `${index + 1}. ${result.name}: ${result.success ? `✅ Success (${toolCount} tools)` : '❌ Failed - ' + result.error}\n`;
                 });
-                
+
                 // Show success message
                 if (successCount === agents.length) {
                     Utils.showNotification(`All ${agents.length} agents created successfully!`, "success");
@@ -2371,9 +2404,9 @@ const AgentCreator = (function() {
                 } else {
                     Utils.showNotification("Failed to create any agents", "danger");
                 }
-                
+
                 UiManager.addBotMessage(responseMessage);
-                
+
                 // Reset after a short delay
                 setTimeout(() => {
                     this.resetAgentData();
@@ -2393,6 +2426,6 @@ const AgentCreator = (function() {
 })();
 
 // Initialize on page load
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     AgentCreator.init();
 });

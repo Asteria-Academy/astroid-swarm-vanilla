@@ -12,6 +12,11 @@ import re
 from typing import Dict, Any, List, Optional, Union, AsyncGenerator
 
 from langchain_core.messages import HumanMessage, SystemMessage
+import logging
+
+# Configure logger
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 from microservice.agent_field_autofill.utils.field_utils import load_field_descriptions
 from others.prompts.input_parser_prompts import (
@@ -96,6 +101,31 @@ class InputParser:
         return [] if is_list else {}
     
     @staticmethod
+    def _sanitize_json_string(content: str) -> str:
+        """
+        Sanitize JSON string by replacing smart quotes and other common issues.
+        """
+        # Replace smart double quotes with standard double quote
+        content = content.replace('“', '"').replace('”', '"')
+        
+        # Replace smart single quotes with STANDARD DOUBLE QUOTE (JSON requires double quotes)
+        content = content.replace("‘", '"').replace("’", '"')
+        
+        # Replace straight single quotes with double quotes? 
+        # Risky inside text, but necessary if keys are using single quotes.
+        # Let's try to target keys specifically? No, unsafe.
+        # Ideally we only do this if json.loads fails, but let's stick to the observed smart quotes first.
+        
+        # Remove trailing commas (e.g. "key": "val", } -> "key": "val" })
+        content = re.sub(r',\s*([}\]])', r'\1', content)
+        
+        # Remove markdown escaping for underscores (e.g. agent\_count -> agent_count)
+        # This is common with some models that try to "markdown-safe" the JSON keys
+        content = content.replace(r'\_', '_')
+        
+        return content
+
+    @staticmethod
     def _parse_json_from_response(response_content: str) -> Dict[str, Any]:
         """
         Parse JSON dictionary from LLM response, handling various formats.
@@ -106,6 +136,9 @@ class InputParser:
         Returns:
             Parsed JSON as dictionary or empty dict if parsing fails
         """
+        # Sanitize content first
+        response_content = InputParser._sanitize_json_string(response_content)
+
         # Try direct JSON parsing
         try:
             return json.loads(response_content)
@@ -122,6 +155,16 @@ class InputParser:
         if result:
             return result
         
+        # Try finding the largest outer bracket pair as a fallback
+        try:
+            start_idx = response_content.find('{')
+            end_idx = response_content.rfind('}')
+            if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
+                json_str = response_content[start_idx:end_idx+1]
+                return json.loads(json_str)
+        except (json.JSONDecodeError, ValueError):
+            pass
+
         # Return empty dict if all extraction attempts failed
         return {}
     
@@ -271,13 +314,14 @@ async def extract_fields_from_input(
     try:
         llm = get_llms(model_name, temperature)
         
-        system_message = SystemMessage(content="You are a helpful AI assistant that extracts structured information from text.")
+        system_message = SystemMessage(content="You are a strict JSON generator. Output only valid JSON.")
         response = await llm.ainvoke(
             [system_message, HumanMessage(content=prompt)]
         )
         
         # Parse the response
-        result = InputParser._parse_json_from_response(response.content)
+        content = response.content if hasattr(response, 'content') else str(response)
+        result = InputParser._parse_json_from_response(content)
         
         # Apply default values for empty fields
         if "description" in result and not result["description"]:
@@ -315,7 +359,7 @@ async def extract_fields_from_input_stream(
     try:
         llm = get_llms(model_name, temperature)
         
-        system_message = SystemMessage(content="You are a helpful AI assistant that extracts structured information from text.")
+        system_message = SystemMessage(content="You are a strict JSON generator. Output only valid JSON.")
         
         # Start with empty content to accumulate tokens
         accumulated_content = ""
@@ -334,11 +378,17 @@ async def extract_fields_from_input_stream(
             # Try to parse the accumulated content
             extracted_data = InputParser._parse_json_from_response(accumulated_content)
             
+            # Log debug info occasionally
+            if len(accumulated_content) % 50 == 0:
+                print(f"DEBUG Stream: Content length {len(accumulated_content)}")
+                print(f"DEBUG Stream: Content peek: {accumulated_content[-100:]}")  # Log last 100 chars
+
             # Process all extracted fields
             for field, field_value in extracted_data.items():
                 if field_value and field_value != partial_result.get(field, ""):
                     partial_result[field] = field_value
                     # Yield an update for this field
+                    print(f"DEBUG Stream: Yielding field {field}")
                     yield {field: field_value}
         
         # Final yield with all fields
@@ -372,13 +422,14 @@ async def extract_keywords_from_agent(
         
         prompt = create_keyword_extraction_prompt(agent_name, description)
         
-        system_message = SystemMessage(content="You are a helpful AI assistant that extracts relevant keywords from text.")
+        system_message = SystemMessage(content="You are a strict JSON generator. Output only valid JSON.")
         response = await llm.ainvoke(
             [system_message, HumanMessage(content=prompt)]
         )
         
         # Parse the response
-        keywords = InputParser._parse_list_from_response(response.content)
+        content = response.content if hasattr(response, 'content') else str(response)
+        keywords = InputParser._parse_list_from_response(content)
         
         # Ensure we have 5-6 keywords
         if len(keywords) < 5:
@@ -417,13 +468,14 @@ async def parse_multi_agent_input(
         
         prompt = create_multi_agent_parsing_prompt(user_input)
         
-        system_message = SystemMessage(content="You are a helpful AI assistant that analyzes text to extract information about multiple agents.")
+        system_message = SystemMessage(content="You are a strict JSON generator. Output only valid JSON. Do not add any conversational text or markdown.")
         response = await llm.ainvoke(
             [system_message, HumanMessage(content=prompt)]
         )
         
         # Parse the response
-        result = InputParser._parse_json_from_response(response.content)
+        content = response.content if hasattr(response, 'content') else str(response)
+        result = InputParser._parse_json_from_response(content)
         
         # Ensure the response has the expected structure
         if not result:
@@ -433,7 +485,7 @@ async def parse_multi_agent_input(
                 "common_attributes": {},
                 "agent_variations": [],
                 "need_more_info": True,
-                "missing_info": "Could not parse the input to determine agents."
+                "missing_info": f"Could not parse the input. Raw output: {content[:200]}..." 
             }
             
         # Set defaults for any missing fields

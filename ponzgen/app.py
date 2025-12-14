@@ -98,7 +98,7 @@ SUPABASE_KEY = os.getenv("SUPABASE_KEY", "your-anon-key")
 
 # Define base directory and default LLM models
 BASE_DIR = Path(__file__).resolve().parent
-DEFAULT_MODELS = ["gpt-3.5-turbo", "gpt-4"]
+DEFAULT_MODELS = ["custom-vlm"]
 
 # Create Supabase client
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)

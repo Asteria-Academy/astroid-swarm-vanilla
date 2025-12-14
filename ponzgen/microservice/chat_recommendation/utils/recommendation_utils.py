@@ -24,6 +24,21 @@ def extract_topics(text: str) -> List[str]:
     # Take first 3 words as topics
     return words[:3]
 
+def sanitize_json_string(content: str) -> str:
+    """
+    Sanitize JSON string by replacing smart quotes and other common issues.
+    """
+    # Replace smart double quotes with standard double quote
+    content = content.replace('“', '"').replace('”', '"')
+    
+    # Replace smart single quotes with STANDARD DOUBLE QUOTE (JSON requires double quotes)
+    content = content.replace("‘", '"').replace("’", '"')
+    
+    # Remove trailing commas (e.g. "key": "val", } -> "key": "val" })
+    content = re.sub(r',\s*([}\]])', r'\1', content)
+    
+    return content
+
 def parse_recommendation_response(response: str) -> List[str]:
     """
     Parse the LLM response to extract recommendations.
@@ -35,15 +50,53 @@ def parse_recommendation_response(response: str) -> List[str]:
         List of recommendations
     """
     try:
-        # Try to find a JSON array in the response
-        json_match = re.search(r'\[.*\]', response, re.DOTALL)
-        if json_match:
-            response = json_match.group(0)
+        # Sanitize content first
+        response = sanitize_json_string(response)
         
-        # Try to parse as JSON
-        recommendations = json.loads(response)
+        parsed_result = None
         
-        # Handle both list and dict formats
+        # Try direct JSON parsing
+        try:
+            parsed_result = json.loads(response)
+        except json.JSONDecodeError:
+            pass
+            
+        if parsed_result is None:
+            # Try to find a JSON array in the response (regex)
+            json_match = re.search(r'\[.*\]', response, re.DOTALL)
+            if json_match:
+                try:
+                    parsed_result = json.loads(json_match.group(0))
+                except json.JSONDecodeError:
+                    pass
+        
+        if parsed_result is None:
+             # Try finding the largest outer bracket pair as a fallback
+            try:
+                start_idx = response.find('[')
+                end_idx = response.rfind(']')
+                if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
+                    json_str = response[start_idx:end_idx+1]
+                    parsed_result = json.loads(json_str)
+            except (json.JSONDecodeError, ValueError):
+                pass
+
+        # If we still don't have a result, fallback to line splitting
+        if parsed_result is None:
+            # Fallback to line-based parsing
+            lines = response.strip().split('\n')
+            recommendations = []
+            for line in lines:
+                line = line.strip(' "\'[]{}')
+                # Skip empty lines and common delimiters
+                if line and not line.startswith(('```', '---', '===', '###')):
+                    # Clean up list markers like "1. ", "- "
+                    line = re.sub(r'^[\d-]+\.\s*|^-\s*', '', line)
+                    recommendations.append(line)
+            return recommendations
+
+        # Handle both list and dict formats from parsed JSON
+        recommendations = parsed_result
         if isinstance(recommendations, dict):
             if 'recommendations' in recommendations:
                 recommendations = recommendations['recommendations']
@@ -52,26 +105,18 @@ def parse_recommendation_response(response: str) -> List[str]:
         elif not isinstance(recommendations, list):
             recommendations = [str(recommendations)]
             
-        # Clean up recommendations
+        # Clean up recommendations (remove non-strings)
         recommendations = [
-            rec.strip(' "\'') for rec in recommendations 
-            if rec and isinstance(rec, str)
+            str(rec).strip(' "\'') for rec in recommendations 
+            if rec
         ]
             
         return recommendations
-    except json.JSONDecodeError:
-        # Fallback to line-based parsing
-        lines = response.strip().split('\n')
-        recommendations = []
-        for line in lines:
-            line = line.strip(' "\'[]{}')
-            # Skip empty lines and common delimiters
-            if line and not line.startswith(('```', '---', '===', '###')):
-                recommendations.append(line)
-        return recommendations
+
     except Exception as e:
         print(f"Error parsing response: {str(e)}")
-        return []
+        # Last ditch effort: return non-empty lines
+        return [line.strip() for line in response.split('\n') if line.strip() and len(line.strip()) > 10][:4]
 
 def validate_recommendations(recommendations: List[str]) -> List[str]:
     """
@@ -132,7 +177,15 @@ async def generate_recommendations_impl(
         try:
             # Get response from LLM
             response = await llm.ainvoke(messages)
-            response_content = response.content
+            
+            # check if response is string or object with content attribute
+            if isinstance(response, str):
+                response_content = response
+            elif hasattr(response, 'content'):
+                response_content = response.content
+            else:
+                response_content = str(response)
+
             print(f"Raw LLM response: {response_content}")
 
             if not response_content:

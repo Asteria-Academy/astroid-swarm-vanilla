@@ -340,8 +340,9 @@ class CustomVLMLLM(LLM):
         # The input is usually a list of messages, but we just need the last one's content
         prompt = ""
         if isinstance(input, list):
-             # It's a list of BaseMessages
-             prompt = input[-1].content
+             # It's a list of BaseMessages, concatenate them
+             # This ensures SystemMessages are included in the prompt
+             prompt = "\n\n".join([msg.content for msg in input])
         else:
              prompt = str(input)
              

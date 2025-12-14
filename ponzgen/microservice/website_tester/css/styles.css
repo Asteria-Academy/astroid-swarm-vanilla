@@ -490,3 +490,66 @@ body {
     justify-content: space-between;
     align-items: center;
 }
+
+/* Typing Indicator */
+.loading-indicator-bubble {
+    min-width: 60px;
+    padding: 0.75rem 1rem !important;
+}
+
+.typing-dots {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    height: 20px;
+}
+
+.typing-dots span {
+    display: block;
+    width: 6px;
+    height: 6px;
+    background-color: #64748b;
+    border-radius: 50%;
+    animation: typing 1.4s infinite ease-in-out both;
+}
+
+.typing-dots span:nth-child(1) {
+    animation-delay: -0.32s;
+}
+
+.typing-dots span:nth-child(2) {
+    animation-delay: -0.16s;
+}
+
+@keyframes typing {
+
+    0%,
+    80%,
+    100% {
+        transform: scale(0);
+    }
+
+    40% {
+        transform: scale(1);
+    }
+}
+
+/* Agent Creator Specifics */
+.field-item--agent-specific {
+    background-color: #f0f9ff;
+    border-left-color: var(--bs-info) !important;
+}
+
+.example-prompts-container::-webkit-scrollbar {
+    height: 4px;
+}
+
+.example-prompts-container::-webkit-scrollbar-thumb {
+    background-color: #e2e8f0;
+    border-radius: 4px;
+}
+
+.input-capsule textarea:focus {
+    box-shadow: none !important;
+}

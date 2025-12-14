@@ -15,7 +15,13 @@ def create_recommendation_system_prompt() -> str:
 generate up to 4 relevant chat recommendations. You MUST format your response as a JSON array of strings, with no other text.
 Each recommendation should be specific to the user's request, mentioning exact tools, commands, or techniques.
 
-Example response format:
+### Response Format ###
+You must output ONLY a valid JSON array of strings. 
+Do not wrap the JSON in markdown code blocks. 
+Do not include any conversational text like "Here are the recommendations:" or "I hope this helps".
+Your entire output should start with '[' and end with ']'.
+
+Example response:
 [
     "Use FastAPI's built-in OAuth2PasswordBearer for user authentication, implementing JWT tokens with a 15-minute expiry.",
     "Create a SQLAlchemy model for users with email, hashed_password, and is_active fields, then implement CRUD operations.",

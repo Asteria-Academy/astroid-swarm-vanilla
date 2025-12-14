@@ -79,7 +79,7 @@ class ToolAutofill:
         description: str,
         keywords: List[str],
         available_tools: List[Any],
-        model_name: str = "openai/gpt-4o-mini",
+        model_name: str = "custom-vlm",
         temperature: float = 0
     ) -> List[str]:
         """
@@ -274,7 +274,7 @@ Example response format:
         available_tools: List[Any],
         existing_field_value: str = "",
         return_tool_ids: bool = True,
-        model_name: str = "openai/gpt-4o-mini", 
+        model_name: str = "custom-vlm", 
         temperature: float = 0
     ) -> Dict[str, Any]:
         """
@@ -350,7 +350,7 @@ Example response format:
         available_tools: List[Any],
         existing_field_value: str = "",
         return_tool_ids: bool = True,
-        model_name: str = "openai/gpt-4o-mini", 
+        model_name: str = "custom-vlm", 
         temperature: float = 0
     ) -> AsyncGenerator[str, None]:
         """Stream the generation of field autofill."""

@@ -66,93 +66,80 @@ async function loadTools() {
 
         if (tools.length === 0) {
             Utils.hideLoading('tools-container', '<p class="text-center">No tools found</p>');
+            document.getElementById('stats-total').textContent = '0';
+            document.getElementById('stats-active').textContent = '0';
             return;
         }
+
+        // Update Stats
+        document.getElementById('stats-total').textContent = tools.length;
+        const activeCount = tools.filter(t => t.on_status === 'Online').length;
+        document.getElementById('stats-active').textContent = activeCount;
+
+
 
         let html = '';
 
         tools.forEach(tool => {
             const isPredefined = tool.company_id === "95901eaa-c08d-4b0a-a5d6-3063a622cb98";
-            let statusClass = "inactive";
-            let statusText = "Inactive";
+            let statusText = "OFFLINE";
+            let statusColor = "var(--text-secondary)";
 
             if (tool.on_status === 'Online') {
-                statusClass = "active";
-                statusText = "Online";
+                statusText = "ONLINE";
+                statusColor = "var(--q-yellow)";
             } else if (tool.on_status === 'Predefined') {
-                statusClass = "inactive";
-                statusText = "Predefined";
-            } else if (tool.on_status === 'Offline') {
-                statusClass = "inactive";
-                statusText = "Offline";
+                statusText = "SYSTEM";
+                statusColor = "#fff";
             }
 
-            const companyLabel = tool.company_id ? 'Organization' : 'Personal';
-
             html += `
-                <div class="management-card h-100 d-flex flex-column ${isPredefined ? 'bg-light' : ''}">
-                     <div class="d-flex justify-content-between align-items-start mb-3">
-                        <div class="d-flex align-items-center">
-                            <div class="agent-avatar-placeholder me-3 bg-success-soft text-success">
+                <div class="col">
+                    <div class="tool-card h-100 d-flex flex-column" onclick="loadToolDetails('${tool.tool_id}')">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div class="tool-icon">
                                 <i class="bi bi-tools"></i>
                             </div>
-                            <div>
-                                <h5 class="fw-bold mb-1 text-dark text-break">${tool.name}</h5>
-                                <span class="badge bg-white text-secondary border rounded-pill fw-normal shadow-sm">${companyLabel}</span>
-                                ${isPredefined ? '<span class="badge bg-dark-soft text-dark rounded-pill fw-normal ms-1">System</span>' : ''}
-                            </div>
+                            <span class="tool-status" style="color: ${statusColor}; border-color: ${statusColor};">
+                                ${statusText}
+                            </span>
                         </div>
-                        <div class="dropdown">
-                            <button class="btn btn-sm btn-light rounded-circle" type="button" data-bs-toggle="dropdown">
-                                <i class="bi bi-three-dots-vertical"></i>
-                            </button>
-                            <ul class="dropdown-menu dropdown-menu-end border-0 shadow-lg">
-                                <li><a class="dropdown-item edit-tool" href="#" data-id="${tool.tool_id}"><i class="bi bi-pencil-square me-2"></i>Edit</a></li>
-                                <li><a class="dropdown-item text-danger delete-tool" href="#" data-id="${tool.tool_id}"><i class="bi bi-trash3 me-2"></i>Delete</a></li>
-                            </ul>
-                        </div>
-                    </div>
 
-                    <p class="text-muted text-sm flex-grow-1 mb-4" style="display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">
-                        ${tool.description || 'No description provided.'}
-                    </p>
-
-                    <div class="mt-auto border-top pt-3 d-flex justify-content-between align-items-center">
-                         <div class="d-flex align-items-center">
-                            <span class="agent-status-indicator ${statusClass}"></span>
-                            <span class="text-xs text-muted">${statusText}</span>
+                        <h3 class="tool-name mb-2">${tool.name}</h3>
+                        
+                        <p class="tool-desc mb-3 flex-grow-1">
+                            ${tool.description || 'No description provided.'}
+                        </p>
+                        
+                        <div class="d-flex justify-content-end gap-2 mt-auto" onclick="event.stopPropagation()">
+                             <button class="btn btn-sm btn-quantum-secondary edit-tool p-1 px-2" data-id="${tool.tool_id}" title="Edit">
+                                <i class="bi bi-pencil"></i>
+                             </button>
+                             <button class="btn btn-sm btn-quantum-secondary delete-tool p-1 px-2" style="color: #ff6b6b; border-color: #ff6b6b;" data-id="${tool.tool_id}" title="Delete">
+                                <i class="bi bi-trash"></i>
+                             </button>
                         </div>
-                        <button class="btn btn-sm btn-outline-success rounded-pill px-3 view-tool" data-id="${tool.tool_id}">
-                            Specs <i class="bi bi-arrow-right ms-1"></i>
-                        </button>
                     </div>
                 </div>
             `;
         });
 
-        if (!html) html = '<div class="text-center w-100 p-5 text-muted">No tools found matching your criteria.</div>';
+        if (!html) html = '<div class="text-center w-100 p-5 text-secondary">No tools found matching your criteria.</div>';
 
         Utils.hideLoading('tools-container', html);
 
-        // Add event listeners to buttons
-        document.querySelectorAll('.view-tool').forEach(button => {
-            button.addEventListener('click', function () {
-                const toolId = this.getAttribute('data-id');
-                loadToolDetails(toolId);
+        // Event listeners for action buttons
+        document.querySelectorAll('.edit-tool').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                editTool(btn.dataset.id);
             });
         });
 
-        document.querySelectorAll('.edit-tool').forEach(button => {
-            button.addEventListener('click', function () {
-                const toolId = this.getAttribute('data-id');
-                editTool(toolId);
-            });
-        });
-
-        document.querySelectorAll('.delete-tool').forEach(button => {
-            button.addEventListener('click', function () {
-                const toolId = this.getAttribute('data-id');
-                deleteTool(toolId);
+        document.querySelectorAll('.delete-tool').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                deleteTool(btn.dataset.id);
             });
         });
 

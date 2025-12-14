@@ -64,51 +64,50 @@ async function loadAgents() {
 
         if (agents.length === 0) {
             Utils.hideLoading('agents-container', '<p class="text-center">No agents found</p>');
+            document.getElementById('stats-total').textContent = '0';
+            document.getElementById('stats-active').textContent = '0';
             return;
         }
+
+        // Update Stats
+        document.getElementById('stats-total').textContent = agents.length;
+        const activeCount = agents.filter(a => a.on_status).length;
+        document.getElementById('stats-active').textContent = activeCount;
 
         let html = '';
 
         agents.forEach(agent => {
             const statusClass = agent.on_status ? 'active' : 'inactive';
-            const statusText = agent.on_status ? 'Active' : 'Inactive';
-            const companyLabel = agent.company_id ? 'Organization' : 'Personal';
+            const statusText = agent.on_status ? 'ONLINE' : 'OFFLINE';
+            const statusColor = agent.on_status ? 'var(--q-cyan)' : 'var(--text-secondary)';
+            const statusBorder = agent.on_status ? 'var(--q-cyan)' : 'var(--text-secondary)';
 
             html += `
-                <div class="management-card h-100 d-flex flex-column">
-                    <div class="d-flex justify-content-between align-items-start mb-3">
-                        <div class="d-flex align-items-center">
-                            <div class="agent-avatar-placeholder me-3">
+                <div class="col">
+                    <div class="agent-card h-100 d-flex flex-column" onclick="loadAgentDetails('${agent.agent_id}')">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div class="agent-icon">
                                 <i class="bi bi-robot"></i>
                             </div>
-                            <div>
-                                <h5 class="fw-bold mb-1 text-dark">${agent.agent_name}</h5>
-                                <span class="badge bg-light text-secondary border rounded-pill fw-normal">${companyLabel}</span>
-                            </div>
+                            <span class="agent-status" style="color: ${statusColor}; border-color: ${statusBorder};">
+                                ${statusText}
+                            </span>
                         </div>
-                        <div class="dropdown">
-                            <button class="btn btn-sm btn-light rounded-circle" type="button" data-bs-toggle="dropdown">
-                                <i class="bi bi-three-dots-vertical"></i>
-                            </button>
-                            <ul class="dropdown-menu dropdown-menu-end border-0 shadow-lg">
-                                <li><a class="dropdown-item edit-agent" href="#" data-id="${agent.agent_id}"><i class="bi bi-pencil-square me-2"></i>Edit</a></li>
-                                <li><a class="dropdown-item text-danger delete-agent" href="#" data-id="${agent.agent_id}"><i class="bi bi-trash3 me-2"></i>Delete</a></li>
-                            </ul>
+
+                        <h3 class="agent-name text-white mb-2">${agent.agent_name}</h3>
+                        
+                        <p class="agent-desc mb-3 flex-grow-1">
+                            ${agent.description || 'No description provided.'}
+                        </p>
+                        
+                        <div class="d-flex justify-content-end gap-2 mt-auto" onclick="event.stopPropagation()">
+                             <button class="btn btn-sm btn-quantum-secondary edit-agent p-1 px-2" data-id="${agent.agent_id}" title="Edit">
+                                <i class="bi bi-pencil"></i>
+                             </button>
+                             <button class="btn btn-sm btn-quantum-secondary delete-agent p-1 px-2" style="color: #ff6b6b; border-color: #ff6b6b;" data-id="${agent.agent_id}" title="Delete">
+                                <i class="bi bi-trash"></i>
+                             </button>
                         </div>
-                    </div>
-                    
-                    <p class="text-muted text-sm flex-grow-1 mb-4" style="display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">
-                        ${agent.description || 'No description provided for this agent.'}
-                    </p>
-                    
-                    <div class="mt-auto border-top pt-3 d-flex justify-content-between align-items-center">
-                        <div class="d-flex align-items-center">
-                            <span class="agent-status-indicator ${statusClass}"></span>
-                            <span class="text-xs text-muted">${statusText}</span>
-                        </div>
-                        <button class="btn btn-sm btn-outline-primary rounded-pill px-3 view-agent" data-id="${agent.agent_id}">
-                            Inspect <i class="bi bi-arrow-right ms-1"></i>
-                        </button>
                     </div>
                 </div>
             `;
@@ -116,25 +115,18 @@ async function loadAgents() {
 
         Utils.hideLoading('agents-container', html);
 
-        // Add event listeners to buttons
-        document.querySelectorAll('.view-agent').forEach(button => {
-            button.addEventListener('click', function () {
-                const agentId = this.getAttribute('data-id');
-                loadAgentDetails(agentId);
+        // Event listeners for action buttons (Edit/Delete)
+        document.querySelectorAll('.edit-agent').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation(); // Prevent card click
+                editAgent(btn.dataset.id);
             });
         });
 
-        document.querySelectorAll('.edit-agent').forEach(button => {
-            button.addEventListener('click', function () {
-                const agentId = this.getAttribute('data-id');
-                editAgent(agentId);
-            });
-        });
-
-        document.querySelectorAll('.delete-agent').forEach(button => {
-            button.addEventListener('click', function () {
-                const agentId = this.getAttribute('data-id');
-                deleteAgent(agentId);
+        document.querySelectorAll('.delete-agent').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation(); // Prevent card click
+                deleteAgent(btn.dataset.id);
             });
         });
 

@@ -61,10 +61,18 @@
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label text-xs">Model</label>
                         <select class="form-select form-control" id="model-name">
                             <option value="">Auto-Detect</option>
                         </select>
+                    </div>
+
+                    <!-- Chat Recommendation Toggle -->
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="chat-recommendation-toggle" checked>
+                        <label class="form-check-label text-sm" for="chat-recommendation-toggle">
+                            Smart Suggestions
+                            <i class="bi bi-stars text-warning ms-1" title="Auto-generate reply suggestions"></i>
+                        </label>
                     </div>
 
                     <div class="form-check form-switch mb-2">
@@ -128,7 +136,7 @@
             </header>
 
             <!-- Chat Messages (Scrollable) -->
-            <div id="chat-container" class="chat-messages">
+            <div id="chat-container" class="chat-messages d-flex flex-column p-4">
                 <!-- Welcome Message -->
                 <div class="d-flex flex-column align-items-center justify-content-center h-100 opacity-50">
                     <div class="icon-box bg-light text-muted mb-3 rounded-circle" style="width: 64px; height: 64px;">
@@ -146,6 +154,12 @@
 
             <!-- Input Area -->
             <div class="chat-input-wrapper">
+                <!-- Recommendations Chips -->
+                <div id="recommendation-chips-container" class="d-flex flex-wrap gap-2 mb-2 px-2"
+                    style="display: none !important;">
+                    <!-- Chips will be injected here -->
+                </div>
+
                 <!-- Image Preview -->
                 <div id="image-preview"
                     class="position-absolute bottom-100 start-0 mb-2 ms-4 p-2 bg-white rounded shadow-sm border"

@@ -409,6 +409,9 @@ async function invokeAgentStream() {
                     content: tokenContainer.dataset.rawContent
                 });
 
+                // --- Trigger Chat Recommendations ---
+                fetchRecommendations(agentId, message, tokenContainer.dataset.rawContent);
+
                 break;
             }
 
@@ -430,14 +433,23 @@ async function invokeAgentStream() {
         }
 
         // Add copy button to the final message
+        // Add copy button to the final message
         if (!agentMessageElement.querySelector('.copy-button')) {
             const copyButton = document.createElement('button');
-            copyButton.className = 'btn btn-sm btn-outline-secondary copy-button position-absolute top-0 end-0 m-2';
-            copyButton.innerHTML = '<i class="bi bi-clipboard"></i>';
+            // Clean, subtle icon-only button
+            copyButton.className = 'btn btn-link btn-sm copy-button position-absolute top-0 end-0 m-2 p-0 text-decoration-none text-muted opacity-25';
+            copyButton.style.transition = 'all 0.2s';
+
+            // Hover effect
+            copyButton.onmouseenter = () => { copyButton.classList.remove('opacity-25'); copyButton.classList.add('opacity-100'); };
+            copyButton.onmouseleave = () => { copyButton.classList.remove('opacity-100'); copyButton.classList.add('opacity-25'); };
+
+            copyButton.innerHTML = '<i class="bi bi-clipboard fs-6"></i>';
+            copyButton.title = "Copy to clipboard";
             copyButton.onclick = () => {
                 navigator.clipboard.writeText(tokenContainer.dataset.rawContent);
-                copyButton.innerHTML = '<i class="bi bi-check"></i>';
-                setTimeout(() => { copyButton.innerHTML = '<i class="bi bi-clipboard"></i>'; }, 2000);
+                copyButton.innerHTML = '<i class="bi bi-check-lg text-success fs-6"></i>';
+                setTimeout(() => { copyButton.innerHTML = '<i class="bi bi-clipboard fs-6"></i>'; }, 2000);
             };
             agentMessageElement.appendChild(copyButton);
         }
@@ -453,13 +465,14 @@ async function invokeAgentStream() {
 }
 
 // Add a message to the chat (Updated to support images and custom IDs)
+// Add a message to the chat (Updated to support images and custom IDs)
 function addMessageToChat(role, content, type = 'normal', imageData = null, customId = null) {
     const chatContainer = document.getElementById('chat-container');
 
     // Remove the initial placeholder if it exists
-    const placeholder = chatContainer.querySelector('p.text-center.text-muted');
+    const placeholder = chatContainer.querySelector('p.text-center.text-muted') || chatContainer.querySelector('.d-flex.flex-column.align-items-center.justify-content-center');
     if (placeholder) {
-        chatContainer.removeChild(placeholder);
+        placeholder.remove();
     }
 
     // Create message element
@@ -472,14 +485,8 @@ function addMessageToChat(role, content, type = 'normal', imageData = null, cust
         messageElement.className = 'alert alert-danger w-100 my-2';
         messageElement.innerHTML = content;
     } else {
-        // User or agent messages
-        messageElement.className = `message ${role}-message`;
-
-        // Add timestamp
-        const timestamp = document.createElement('div');
-        timestamp.className = 'message-time';
-        timestamp.textContent = new Date().toLocaleTimeString();
-        messageElement.appendChild(timestamp);
+        // User or agent messages - NEATER BUBBLE STYLE
+        messageElement.className = `message-bubble ${role} mb-3`;
 
         // Create message content container
         const messageContent = document.createElement('div');
@@ -488,14 +495,12 @@ function addMessageToChat(role, content, type = 'normal', imageData = null, cust
         // Add image if present
         if (imageData) {
             const imgContainer = document.createElement('div');
-            imgContainer.className = 'message-image';
+            imgContainer.className = 'message-image mb-2';
             const img = document.createElement('img');
             img.src = imageData;
             img.alt = 'Uploaded content';
-            img.style.maxWidth = '100%';
+            img.className = 'img-fluid rounded';
             img.style.maxHeight = '200px';
-            img.style.borderRadius = '8px';
-            img.style.marginBottom = '8px';
             imgContainer.appendChild(img);
             messageContent.appendChild(imgContainer);
         }
@@ -508,6 +513,13 @@ function addMessageToChat(role, content, type = 'normal', imageData = null, cust
         }
 
         messageElement.appendChild(messageContent);
+
+        // Add timestamp as a neat meta footer inside the bubble
+        const meta = document.createElement('div');
+        meta.className = 'message-meta mt-1 opacity-75 small';
+        meta.style.fontSize = '0.7em';
+        meta.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        messageElement.appendChild(meta);
     }
 
     // Add to conversation history if it's a user message
@@ -629,21 +641,73 @@ let isBuffering = false;
 let hasReceivedVlmResponse = false;
 let visibleContent = '';
 let bufferedContent = '';
+let responseQueue = [];
+let isTypingResponse = false;
 
 // Handle token events
 function handleTokenEvent(data, tokenContainer) {
-    // Get the raw token directly from the data
+    // Queue the token
     const token = data.token;
+    responseQueue.push(token);
 
-    // Always concatenate the token to the raw content for processing
-    tokenContainer.dataset.rawContent += token;
+    // Start processing if not already active
+    if (!isTypingResponse) {
+        processResponseQueue(tokenContainer);
+    }
+}
 
-    // Process the content with buffering logic
-    processContentWithBuffering(token, tokenContainer);
+// Process the response queue with typing effect
+async function processResponseQueue(tokenContainer) {
+    isTypingResponse = true;
 
-    // Scroll the chat container to the bottom
-    const chatContainer = document.getElementById('chat-container');
-    chatContainer.scrollTop = chatContainer.scrollHeight;
+    try {
+        while (responseQueue.length > 0) {
+            // Get the next chunk
+            const chunk = responseQueue.shift();
+
+            // Process character by character for typing effect
+            for (const char of chunk) {
+                // Check if container is still valid
+                if (!tokenContainer.isConnected) {
+                    responseQueue = []; // Clear queue if element gone
+                    isTypingResponse = false;
+                    return;
+                }
+
+                // Always concatenate the token to the raw content for processing
+                tokenContainer.dataset.rawContent = (tokenContainer.dataset.rawContent || '') + char;
+
+                // Process the content
+                processContentWithBuffering(char, tokenContainer);
+
+                // Scroll the chat container to the bottom
+                const chatContainer = document.getElementById('chat-container');
+                if (chatContainer) {
+                    chatContainer.scrollTop = chatContainer.scrollHeight;
+                }
+
+                // Dynamic delay based on queue size (speed up if falling behind)
+                // If queue has many chunks, go fast (0-5ms). heavy logic takes time anyway.
+                // If clean queue, go nice speed (15-20ms).
+                let delay = 15;
+                if (responseQueue.length > 2) delay = 5;
+                if (responseQueue.length > 10) delay = 0;
+
+                if (delay > 0) {
+                    await new Promise(r => setTimeout(r, delay));
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Error in typing loop:', error);
+    } finally {
+        isTypingResponse = false;
+
+        // Safety check: if queue not empty (race condition), restart
+        if (responseQueue.length > 0) {
+            processResponseQueue(tokenContainer);
+        }
+    }
 }
 
 // Process content with buffering for special blocks
@@ -856,4 +920,139 @@ function executeScriptsInElement(element) {
         const newEl = el.cloneNode(true);
         el.parentNode.replaceChild(newEl, el);
     });
+}
+
+// --- Chat Recommendation Features ---
+
+/**
+ * Fetch chat recommendations from the backend
+ */
+async function fetchRecommendations(agentId, userMessage, agentResponse) {
+    // Check if feature is enabled via toggle
+    const toggle = document.getElementById('chat-recommendation-toggle');
+    if (toggle && !toggle.checked) {
+        return;
+    }
+
+    try {
+        const chipsContainer = document.getElementById('recommendation-chips-container');
+        if (!chipsContainer) return;
+
+        // Clear previous chips and hide container while loading
+        chipsContainer.innerHTML = '';
+        chipsContainer.style.setProperty('display', 'none', 'important');
+
+        // Prepare the payload
+        const payload = {
+            agent_id: agentId,
+            messages: [
+                { role: 'user', content: userMessage },
+                { role: 'assistant', content: agentResponse }
+            ],
+            user_input: userMessage
+        };
+
+        console.log('Fetching recommendations...', payload);
+
+        const response = await fetch(`${API.getBaseUrl()}/chat-recommendation/generate-recommendations`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${API.getToken()}`
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            if (response.status === 404) {
+                console.warn('Chat recommendation endpoint not found (404). Feature disabled.');
+                return;
+            }
+            throw new Error(`Failed to fetch recommendations: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (data && data.recommendations && Array.isArray(data.recommendations) && data.recommendations.length > 0) {
+            renderRecommendationChips(data.recommendations);
+        }
+
+    } catch (error) {
+        console.error('Error fetching recommendations:', error);
+        // Fail silently UI-wise, just log it
+    }
+}
+
+/**
+ * Render recommendation chips above the input
+ */
+function renderRecommendationChips(recommendations) {
+    const chipsContainer = document.getElementById('recommendation-chips-container');
+    if (!chipsContainer) return;
+
+    chipsContainer.innerHTML = '';
+
+    recommendations.forEach(rec => {
+        const text = typeof rec === 'string' ? rec : rec.text;
+        if (!text) return;
+
+        const chip = document.createElement('button');
+        chip.className = 'btn btn-sm btn-outline-primary rounded-pill text-truncate';
+        chip.style.maxWidth = '200px';
+        chip.textContent = text;
+        chip.title = text; // Tooltip for full text
+
+        chip.onclick = () => applyRecommendation(text);
+
+        chipsContainer.appendChild(chip);
+    });
+
+    // Show the container
+    chipsContainer.style.removeProperty('display');
+    chipsContainer.classList.remove('d-none');
+}
+
+/**
+ * Type text into an element with a typing effect
+ * Adapted from agents.js
+ */
+async function typeText(element, text) {
+    if (!element) return;
+
+    // Disable input while typing
+    element.disabled = true;
+    let displayedText = '';
+
+    try {
+        for (let i = 0; i < text.length; i++) {
+            displayedText += text[i];
+            element.value = displayedText + "▌"; // Add cursor effect
+            element.scrollTop = element.scrollHeight;
+
+            // Random delay between 10ms and 40ms
+            const delay = Math.floor(Math.random() * 30) + 10;
+            await new Promise(r => setTimeout(r, delay));
+        }
+
+        // Final text without cursor
+        element.value = displayedText;
+
+    } catch (e) {
+        console.error('Typing animation error:', e);
+        element.value = text;
+    } finally {
+        element.disabled = false;
+        element.focus();
+    }
+}
+
+/**
+ * Apply a recommendation to the chat input
+ */
+function applyRecommendation(text) {
+    const messageInput = document.getElementById('agent-message');
+    if (messageInput) {
+        // Use typing effect
+        typeText(messageInput, text);
+    }
 }

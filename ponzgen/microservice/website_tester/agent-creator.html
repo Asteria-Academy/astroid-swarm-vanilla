@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -15,7 +16,7 @@
             border-radius: 5px;
             padding: 15px;
         }
-        
+
         .chat-message {
             margin-bottom: 15px;
             padding: 10px 15px;
@@ -23,31 +24,45 @@
             max-width: 80%;
             position: relative;
         }
-        
+
         .chat-message--user {
             background-color: #e2f3ff;
             margin-left: auto;
             border-bottom-right-radius: 0;
         }
-        
+
         .chat-message--bot {
             background-color: #f0f0f0;
             margin-right: auto;
             border-bottom-left-radius: 0;
         }
-        
+
         .loading-dots:after {
             content: '.';
             animation: dots 1.5s steps(5, end) infinite;
         }
-        
+
         @keyframes dots {
-            0%, 20% { content: '.'; }
-            40% { content: '..'; }
-            60% { content: '...'; }
-            80%, 100% { content: ''; }
+
+            0%,
+            20% {
+                content: '.';
+            }
+
+            40% {
+                content: '..';
+            }
+
+            60% {
+                content: '...';
+            }
+
+            80%,
+            100% {
+                content: '';
+            }
         }
-        
+
         /* Agent preview styles */
         .agent-preview-container {
             background-color: #ffffff;
@@ -56,7 +71,7 @@
             padding: 15px;
             margin-top: 20px;
         }
-        
+
         .field-item {
             margin-bottom: 10px;
             padding: 8px;
@@ -64,18 +79,18 @@
             background-color: #f8f9fa;
             border-left: 3px solid #6c757d;
         }
-        
+
         .field-item--filled {
             border-left-color: #28a745;
         }
-        
+
         /* Example boxes styles */
         .example-boxes {
             display: flex;
             gap: 10px;
             margin-bottom: 10px;
         }
-        
+
         .example-box {
             flex: 1;
             border: 2px solid #dc3545;
@@ -85,182 +100,199 @@
             cursor: pointer;
             transition: all 0.2s ease;
         }
-        
+
         .example-box:hover {
             background-color: #f8f9fa;
             transform: translateY(-2px);
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
-        
+
         .example-box h6 {
             color: #dc3545;
             margin-bottom: 5px;
             font-weight: bold;
         }
-        
+
         .example-box p {
             margin-bottom: 0;
             font-size: 0.85rem;
         }
-        
+
         .example-box.multi-agent {
             display: none;
         }
     </style>
 </head>
+
 <body>
-    <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="index.html">API Tester</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav">
-                    <li class="nav-item">
-                        <a class="nav-link" href="index.html">Home</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="agents.html">Agents</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link active" href="agent-creator.html">Agent Creator</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="agent-invoke.html">Invoke</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="agent-invoke-stream.html">Invoke (Stream)</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="tools.html">Tools</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="agent-logs.html">Logs</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="health.html">Health</a>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </nav>
 
-    <!-- Main Content -->
-    <main class="container mt-4">
-        <header class="row">
-            <div class="col-12">
-                <h1>Agent Creator</h1>
-                <p>Describe your agent in detail and our AI will extract the necessary information</p>
-                <div class="alert alert-info">
-                    <strong>Note:</strong> This feature requires the agent_creator service running on port 8080. The main API runs on port 8000.
-                </div>
-            </div>
-        </header>
-
-        <section class="row mt-3">
-            <!-- Chat Interface -->
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5>Agent Description</h5>
-                        <div>
-                            <div class="form-check form-switch d-inline-block me-3">
-                                <input class="form-check-input" type="checkbox" id="multi-agent-toggle">
-                                <label class="form-check-label" for="multi-agent-toggle">Multi-Agent Creation</label>
-                            </div>
-                            <button id="show-field-help" class="btn btn-sm btn-outline-info">Available Fields</button>
-                        </div>
+    <div class="app-layout">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar-panel" id="sidebarPanel">
+            <div class="sidebar-header d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="icon-box bg-indigo-soft text-indigo"
+                        style="width: 32px; height: 32px; font-size: 1rem;">
+                        <i class="bi bi-magic"></i>
                     </div>
-                    <div class="card-body p-0">
-                        <div id="chat-container" class="chat-container">
-                            <!-- Chat messages will appear here -->
+                    <span class="fw-bold tracking-wide text-sm">Agent Studio</span>
+                </div>
+                <!-- Back to Home -->
+                <a href="index.html" class="btn btn-sm btn-light-soft text-muted border-0" title="Back to Home">
+                    <i class="bi bi-house"></i>
+                </a>
+            </div>
+
+            <div class="sidebar-content">
+                <div class="d-grid gap-2 mb-4">
+                    <button id="reset-agent" class="btn btn-light-soft text-danger">
+                        <i class="bi bi-arrow-counterclockwise me-2"></i>Reset Session
+                    </button>
+                    <!-- Help Button -->
+                    <button id="show-field-help" class="btn btn-light-soft text-info">
+                        <i class="bi bi-question-circle me-2"></i>Field Guide
+                    </button>
+                </div>
+
+                <div class="mb-4">
+                    <label class="text-xs fw-bold text-uppercase text-muted mb-2">Configuration</label>
+                    <div class="p-3 bg-light rounded border border-light">
+                        <div class="form-check form-switch mb-2">
+                            <input class="form-check-input" type="checkbox" id="multi-agent-toggle">
+                            <label class="form-check-label text-sm" for="multi-agent-toggle">Multi-Agent Mode</label>
                         </div>
-                        
-                        <!-- Example Boxes -->
-                        <div class="example-boxes p-3 border-top">
-                            <!-- Single Agent Examples -->
-                            <div class="example-box single-agent" data-example="Make me an agent that can manage my task">
-                                <h6>Example 1</h6>
-                                <p>Make me an agent that can manage my task</p>
-                            </div>
-                            <div class="example-box single-agent" data-example="Make me an agent that can help solve statistical problem in a friendly manner">
-                                <h6>Example 2</h6>
-                                <p>Make me an agent that can help solve statistical problem in a friendly manner</p>
-                            </div>
-                            
-                            <!-- Multi-Agent Examples -->
-                            <div class="example-box multi-agent" data-example="Create 2 agent that can access my linear and my github">
-                                <h6>Example 1</h6>
-                                <p>Create 2 agent that can access my linear and my github</p>
-                            </div>
-                            <div class="example-box multi-agent" data-example="Make me 3 agents that can help me solve programming problems, each with its own specialize field">
-                                <h6>Example 2</h6>
-                                <p>Make me 3 agents that can help me solve programming problems, each with its own specialize field</p>
-                            </div>
-                        </div>
-                        
-                        <div class="input-group p-3 border-top">
-                            <textarea id="user-input" class="form-control" placeholder="Provide a detailed description of the agent you want to create..." rows="4"></textarea>
-                            <button id="send-message" class="btn btn-primary">Parse</button>
-                        </div>
+                        <p class="text-xs text-muted mb-0">
+                            Create multiple coordinating agents from a single prompt.
+                        </p>
                     </div>
                 </div>
-            </div>
-        </section>
 
-        <section class="row mt-4">
-            <!-- Agent Preview -->
-            <div class="col-md-8">
-                <div class="card">
-                    <div class="card-header">
-                        <h5>Agent Preview</h5>
-                    </div>
-                    <div class="card-body agent-preview-container">
-                        <div id="agent-preview">
-                            <p class="text-center text-muted">Describe your agent to see a preview here</p>
-                        </div>
+                <div class="sidebar-footer-content mt-auto">
+                    <div class="alert alert-info-soft border-0 text-xs mb-0">
+                        <i class="bi bi-info-circle me-1"></i>
+                        <strong>Service Status:</strong><br>
+                        Requires agent_creator service on port 8080.
                     </div>
                 </div>
             </div>
 
-            <!-- Controls -->
-            <div class="col-md-4">
-                <div class="card">
-                    <div class="card-header">
-                        <h5>Agent Controls</h5>
+            <div class="sidebar-footer">
+                <div class="text-xs text-center text-muted">
+                    Powered by Ponzgen AI
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="chat-area position-relative">
+            <!-- Glass Header -->
+            <header class="chat-header">
+                <div class="d-flex align-items-center">
+                    <button class="btn btn-outline-secondary d-md-none me-2" id="toggleSidebar">
+                        <i class="bi bi-list"></i>
+                    </button>
+                    <div>
+                        <h5 class="mb-0 fw-bold text-dark">Agent Creator</h5>
+                        <p class="mb-0 text-xs text-muted">Describe your needs, we'll build the agent</p>
                     </div>
-                    <div class="card-body">
-                        <button type="button" id="create-agent" class="btn btn-success mb-3 w-100" disabled>Create Agent</button>
-                        <button type="button" id="reset-agent" class="btn btn-outline-danger w-100">Reset</button>
+                </div>
+                <div>
+                    <button type="button" id="create-agent" class="btn btn-primary rounded-pill px-4 shadow-sm"
+                        disabled>
+                        <i class="bi bi-check-lg me-2"></i>Deploy Agent
+                    </button>
+                </div>
+            </header>
+
+            <div class="container-fluid h-100 p-0 overflow-hidden">
+                <div class="row h-100 g-0">
+                    <!-- Chat Column -->
+                    <div class="col-lg-6 d-flex flex-column border-end h-100 bg-white">
+                        <!-- Chat Messages Area -->
+                        <div id="chat-container" class="chat-messages flex-grow-1">
+                            <!-- Welcome Message -->
+                            <div class="message-bubble agent">
+                                <div class="message-content">
+                                    Hello! I'm your Agent Architect. Describe the agent you want to build, and I'll
+                                    extract the details for you.
+                                </div>
+                                <div class="message-meta">Architect</div>
+                            </div>
+                        </div>
+
+                        <!-- Example Prompts (Collapsible actions) -->
+                        <div class="px-4 pb-2">
+                            <div class="d-flex gap-2 overflow-auto pb-2 example-prompts-container hide-scroll"
+                                style="white-space: nowrap;">
+                                <button class="btn btn-sm btn-light-soft rounded-pill border example-btn single-agent"
+                                    data-example="Make a research assistant that searches the web and summarises findings">
+                                    <i class="bi bi-search me-1"></i> Research Assistant
+                                </button>
+                                <button class="btn btn-sm btn-light-soft rounded-pill border example-btn single-agent"
+                                    data-example="Create a coding helper for Python who is strict about type hinting">
+                                    <i class="bi bi-code-slash me-1"></i> Python Coder
+                                </button>
+                                <button
+                                    class="btn btn-sm btn-light-soft rounded-pill border example-btn multi-agent d-none"
+                                    data-example="Create a team: one researcher and one writer">
+                                    <i class="bi bi-people me-1"></i> Research Team
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Input Area -->
+                        <div class="chat-input-wrapper bg-white border-top">
+                            <div class="input-capsule">
+                                <textarea id="user-input" class="chat-input-field" rows="1"
+                                    placeholder="Describe your agent..." style="resize: none;"></textarea>
+                                <button id="send-message" class="send-btn-circle shadow-sm">
+                                    <i class="bi bi-arrow-up-short fs-4"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Preview Column -->
+                    <div class="col-lg-6 h-100 bg-light-soft overflow-hidden d-flex flex-column">
+                        <div class="p-3 border-bottom bg-white d-flex justify-content-between align-items-center">
+                            <h6 class="fw-bold mb-0 text-secondary text-uppercase text-xs tracking-wide">Live Blueprint
+                            </h6>
+                            <span class="badge bg-light text-muted border">Draft Mode</span>
+                        </div>
+
+                        <div class="p-4 overflow-auto h-100">
+                            <div id="agent-preview" class="agent-preview-wrapper">
+                                <div class="text-center text-muted mt-5">
+                                    <div class="icon-box bg-light text-secondary rounded-circle mb-3 mx-auto">
+                                        <i class="bi bi-clipboard-data fs-4"></i>
+                                    </div>
+                                    <h6>Blueprint Empty</h6>
+                                    <p class="text-sm">As you chat, the agent configuration will appear here.</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
-        </section>
-    </main>
+
+        </main>
+    </div>
 
     <!-- Field Help Modal -->
-    <div class="modal fade" id="field-help-modal" tabindex="-1" aria-labelledby="field-help-modal-label" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="field-help-modal-label">Available Agent Fields</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    <div class="modal fade" id="field-help-modal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header border-bottom-0 pb-0">
+                    <h5 class="modal-title fw-bold">Field Dictionary</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body">
-                    <div class="list-group" id="field-descriptions">
-                        <!-- Field descriptions will be populated here -->
-                        <div class="list-group-item">
-                            <div class="d-flex w-100 justify-content-between">
-                                <h5 class="mb-1">Loading...</h5>
-                            </div>
-                            <p class="mb-1">Loading field descriptions. Please wait...</p>
-                        </div>
+                <div class="modal-body p-4">
+                    <div class="list-group list-group-flush" id="field-descriptions">
+                        <!-- Content -->
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <div class="modal-footer border-top-0 pt-0">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Close</button>
                 </div>
             </div>
         </div>
@@ -273,15 +305,30 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script src="js/main.js"></script>
     <script src="js/agent-creator.js"></script>
-    
-    <!-- Set default model to GPT-4o Mini with temperature 0 -->
+
     <script>
-        // This will set default values for the parser model
-        document.addEventListener('DOMContentLoaded', function() {
-            // These values will be used in the agent-creator.js file
-            window.defaultParserModel = "openai/gpt-4o-mini";
+        // Sidebar Toggle
+        const toggleBtn = document.getElementById('toggleSidebar');
+        const sidebar = document.getElementById('sidebarPanel');
+        if (toggleBtn) {
+            toggleBtn.addEventListener('click', () => {
+                sidebar.classList.toggle('show');
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            window.defaultParserModel = "custom-vlm";
             window.defaultTemperature = 0;
+
+            // Auto expand textarea
+            const textarea = document.getElementById('user-input');
+            textarea.addEventListener('input', function () {
+                this.style.height = 'auto';
+                this.style.height = (this.scrollHeight) + 'px';
+                if (this.value === '') this.style.height = 'auto';
+            });
         });
     </script>
 </body>
+
 </html>

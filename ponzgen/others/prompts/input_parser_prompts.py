@@ -37,7 +37,10 @@ def create_extraction_prompt(user_input: str, field_descriptions: Dict[str, str]
         "3. Return only the extracted information, not explanations or reasoning.",
         "4. Format your response as a valid JSON object with the field names as keys.",
         "5. For the 'agent_style' field, create an agent style that will be used to generate the agent's behavior.",
-        "6. For the 'description' field, you MUST provide a concise one-sentence summary about the agent's purpose and capabilities, even if there's limited information. Never leave this field empty. Default description: This agent is designed to assist users with their tasks."
+        "6. For the 'description' field, you MUST provide a concise one-sentence summary about the agent's purpose and capabilities, even if there's limited information. Never leave this field empty. Default description: This agent is designed to assist users with their tasks.",
+        
+        "\n### Response Format ###",
+        "Only return the JSON object. Do not wrap it in markdown code blocks. Do not add any conversational text."
     ])
     
     return "\n".join(prompt_parts)
@@ -69,6 +72,9 @@ def create_keyword_extraction_prompt(agent_name: str, description: str) -> str:
     4. Return as a JSON array of strings
     5. Do not include stop words or generic terms like "agent" or "assistant" or "solver"
     6. Include words that are relevant to the agent's field and functionality
+    
+    ### Response Format ###
+    Only return the JSON array. Do not wrap it in markdown code blocks. Do not add any conversational text.
     """
 
 def create_multi_agent_parsing_prompt(user_input: str) -> str:
@@ -128,4 +134,7 @@ def create_multi_agent_parsing_prompt(user_input: str) -> str:
        - description (a specific description for each agent)
     8. Don't use "agent_style" - use "agent_name" instead for naming fields consistently.
     9. All agents must have the same field structure (include the same fields even if empty).
+    
+    ### Response Format ###
+    Only return the JSON object. Do not wrap it in markdown code blocks. Do not add any conversational text.
     """ 

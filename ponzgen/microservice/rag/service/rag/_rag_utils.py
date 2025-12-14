@@ -7,7 +7,7 @@ import os
 embedder = EmbedderService()
 storage_client = SupabaseStorageClient()
 
-def generate_response(query, retrieved_context, model_name="gpt-3.5-turbo", temperature=0):
+def generate_response(query, retrieved_context, model_name="custom-vlm", temperature=0):
     """
     Generates a response from LLM based on the query and context.
     """
