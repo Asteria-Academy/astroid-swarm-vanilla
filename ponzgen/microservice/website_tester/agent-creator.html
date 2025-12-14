@@ -153,20 +153,63 @@
 
         /* MCP Hub recommendations section */
         #mcphub-tools-container {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            padding: 1rem;
-            margin-top: 1rem;
+            \n background: rgba(255, 255, 255, 0.03);
+            \n border: 1px solid var(--border-color);
+            \n border-radius: 4px;
+            \n padding: 1rem;
+            \n margin-top: 1rem;
+            \n
         }
 
-        #mcphub-tools-container h6 {
-            color: var(--q-yellow);
+        \n\n #mcphub-tools-container h6 {
+            \n color: var(--q-yellow);
+            \n
         }
 
-        #mcphub-tools-container .small,
-        #mcphub-tools-container p {
-            color: var(--text-secondary);
+        \n\n #mcphub-tools-container .small,
+        \n #mcphub-tools-container p {
+            \n color: var(--text-secondary);
+            \n
+        }
+
+        /* Force dark theme on ALL preview elements */
+        .agent-preview-container *:not(.badge):not(i):not(svg) {
+            background-color: transparent !important;
+            color: var(--text-primary) !important;
+        }
+
+        .agent-preview-container input,
+        .agent-preview-container textarea,
+        .agent-preview-container select {
+            background-color: rgba(0, 0, 0, 0.5) !important;
+            border-color: #333 !important;
+            color: #fff !important;
+        }
+
+        .agent-preview-container .card,
+        .agent-preview-container .alert,
+        .agent-preview-container .list-group-item,
+        .agent-preview-container div[class*="bg-"] {
+            background-color: rgba(255, 255, 255, 0.03) !important;
+        }
+
+        /* Tool checkboxes in preview */
+        .agent-preview-container .form-check {
+            background: transparent !important;
+        }
+
+        .agent-preview-container .form-check-label {
+            color: var(--text-primary) !important;
+        }
+
+        .agent-preview-container .form-check-input {
+            background-color: rgba(0, 0, 0, 0.5) !important;
+            border-color: #666 !important;
+        }
+
+        .agent-preview-container .form-check-input:checked {
+            background-color: var(--q-yellow) !important;
+            border-color: var(--q-yellow) !important;
         }
 
         .field-item {
