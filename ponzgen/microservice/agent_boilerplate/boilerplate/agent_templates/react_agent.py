@@ -1,4 +1,5 @@
 from langgraph.prebuilt import create_react_agent
+from langchain_core.prompts import PromptTemplate
 import sys
 import os
 
@@ -8,67 +9,82 @@ from ..utils.get_llms import get_llms
 def get_react_agent(model_name="custom-vlm", temperature=0, langchain_tools=[], memory=None):
     """
     Create a ReAct agent with the specified model, tools, and memory.
-    
-    Args:
-        model_name: The name of the LLM to use
-        temperature: The temperature setting for the model (0-1)
-        langchain_tools: List of LangChain tools to provide to the agent
-        memory: Memory instance for maintaining conversation state
-        
-    Returns:
-        A configured ReAct agent
     """
-    # model_name = "anthropic/claude-3.5-sonnet" # for tools, one of the most general model
     model = get_llms(model_name, temperature)
     
-    # Add system prompt to instruct the model to use tools
-    system_prompt = """You are a helpful AI assistant with access to tools.
-
-When the user asks you to perform actions like:
-- "list", "show", "get", "find", "search" → Use search/list tools
-- "create", "add", "make", "new" → Use create tools  
-- "update", "edit", "modify", "change" → Use update tools
-- "delete", "remove" → Use delete tools
-
-IMPORTANT: When you have tools available and the user's request matches a tool's capability, you MUST use the tool instead of just describing what you would do.
-
-For example:
-- "list linear issues" → Use the Linear search/list tool
-- "create an issue" → Use the Linear create issue tool
-- "hello" → Just respond conversatively (no tool needed)
-
-Always use tools when appropriate to provide accurate, real-time information."""
+    # 1. Get tool names and descriptions to feed into the prompt
+    # Gemma needs to read these as text since it doesn't support native tool binding well
     
+    # Print available tools to debug
+    print("Available Tools:", [t.name for t in langchain_tools])
+    
+    tool_desc = "\n".join([f"- {t.name}: {t.description}" for t in langchain_tools])
+    tool_names = ", ".join([t.name for t in langchain_tools])
+
+    # 2. STRICT ReAct System Prompt
+    # This forces Gemma to output "Action:" instead of Python code
+    system_prompt = f"""You are an intelligent agent interacting with the Linear issue tracking system.
+    
+You have access to the following tools:
+{tool_desc}
+
+To use a tool, you MUST use the following format:
+
+Thought: Do I need to use a tool? Yes
+Action: the name of the tool to use, should be one of [{tool_names}]
+Action Input: the input to the tool in JSON format
+Observation: [Tool output will appear here]
+
+Example 1 (Listing issues):
+User: "List my linear issues"
+Thought: I need to find the issues assigned to the user.
+Action: linear_issues_list
+Action Input: {{}}
+
+Example 2 (Creating an issue):
+User: "Create a bug report about the login page"
+Thought: I need to create a new issue with the title provided.
+Action: linear_issue_create
+Action Input: {{"title": "Login page bug", "description": "User cannot login"}}
+
+IMPORTANT:
+1. Do NOT write Python code (like `print(...)` or `import...`).
+2. Do NOT just describe the action.
+3. ALWAYS start your turn with "Thought:".
+4. If no tool is needed, just respond with the final answer.
+"""
+
+    # 3. Create the agent with the enforced prompt
     return create_react_agent(
         model, 
         langchain_tools, 
         checkpointer=memory,
         state_modifier=system_prompt
     )
-# Example usage
+
 if __name__ == "__main__":
     from langgraph.checkpoint.memory import MemorySaver
     
-    # Create memory and agent
+    # Mocking a tool for testing if you run this file directly
+    # In your actual app, 'langchain_tools' comes from the MCP connection
+    from langchain_core.tools import tool
+
+    @tool
+    def linear_issue_create(title: str):
+        """Creates a linear issue."""
+        return "Issue created successfully"
+
     memory = MemorySaver()
-    agent = get_react_agent(model_name="custom-vlm", memory=memory)
+    # Pass the mock tool for the test
+    agent = get_react_agent(model_name="custom-vlm", langchain_tools=[linear_issue_create], memory=memory)
     
-    # First interaction
-    query = "My name is kelvin"
+    query = "create linear issue for fixing the login bug"
     config = {'thread_id': "1"}
-    try:
-        response = agent.invoke({"messages": query}, {"configurable": config})
-        ai_message = response['messages'][-1].content
-        print(ai_message)
-    except Exception as e:
-        print(f"Error: {e}")
     
-    # Follow up question (demonstrates memory persistence)
-    query = "What is my name?"
-    config = {'thread_id': "1"}
+    print(f"User: {query}")
     try:
-        response = agent.invoke({"messages": query}, {"configurable": config})
-        ai_message = response['messages'][-1].content
-        print(ai_message)
+        # We stream the output to see if it's trying to call the tool
+        for chunk in agent.stream({"messages": [("user", query)]}, config):
+            print(chunk)
     except Exception as e:
         print(f"Error: {e}")
