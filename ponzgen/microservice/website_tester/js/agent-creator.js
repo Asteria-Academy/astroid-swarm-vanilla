@@ -660,11 +660,11 @@ const AgentCreator = (function () {
             // Check if we have available tools
             if (!window.availableTools || window.availableTools.length === 0) {
                 container.innerHTML = `
-                    <div class="alert alert-info">
-                        <i class="bi bi-info-circle"></i>
-                        No available tools found. Please wait for tools to load or check your connection.
-                    </div>
-                `;
+            <div class="alert bg-dark border border-secondary text-info d-flex align-items-center">
+                <i class="bi bi-info-circle me-2"></i>
+                <div>No available tools found. Please wait for tools to load or check your connection.</div>
+            </div>
+        `;
                 return;
             }
 
@@ -707,30 +707,33 @@ const AgentCreator = (function () {
                 const isChecked = selectedToolsSet.has(tool.tool_id);
 
                 checkboxesHtml += `
-                    <div class="form-check mb-2 tool-checkbox-item" data-tool-name="${tool.name.toLowerCase()}" data-tool-id="${tool.tool_id}">
-                        <div class="d-flex align-items-start p-2">
-                            <input class="form-check-input tool-checkbox me-3" 
-                                   type="checkbox" 
-                                   value="${tool.tool_id}" 
-                                   id="tool-${tool.tool_id}"
-                                   style="min-width: 20px; margin-top: 4px;"
-                                   ${isChecked ? 'checked' : ''}>
-                            <div class="flex-grow-1">
-                                <label class="form-check-label" for="tool-${tool.tool_id}">
-                                    <span class="fw-bold">${tool.name}</span>
-                                </label>
-                                <p class="mb-1 small text-muted">${tool.description || 'No description available'}</p>
-                                <div class="tool-meta">
-                                    <small class="text-muted">Status: 
-                                        <span class="badge ${tool.on_status === 'Online' ? 'bg-success' : tool.on_status === 'Predefined' ? 'bg-info' : tool.on_status === 'Offline' ? 'bg-warning' : 'bg-danger'}">
-                                            ${tool.on_status === 'Online' ? 'Active' : tool.on_status === 'Predefined' ? 'Clone to Use Predefined Tools' : tool.on_status === 'Offline' ? 'Offline' : 'Inactive'}
-                                        </span>
-                                    </small>
-                                </div>
-                            </div>
+            <div class="form-check mb-2 tool-checkbox-item" data-tool-name="${tool.name.toLowerCase()}" data-tool-id="${tool.tool_id}">
+                <div class="d-flex align-items-start p-3 border rounded tool-card-select ${isChecked ? 'selected' : ''}" 
+                     style="background: rgba(255,255,255,0.02); border-color: ${isChecked ? 'var(--q-cyan)' : 'var(--border-color)'} !important; transition: all 0.3s;">
+                    <input class="form-check-input tool-checkbox me-3" 
+                           type="checkbox" 
+                           value="${tool.tool_id}" 
+                           id="tool-${tool.tool_id}"
+                           style="min-width: 20px; margin-top: 4px; border-color: var(--q-cyan);"
+                           ${isChecked ? 'checked' : ''}>
+                    <div class="flex-grow-1">
+                        <label class="form-check-label d-block text-white fw-bold mb-1" for="tool-${tool.tool_id}">
+                            ${tool.name}
+                        </label>
+                        <div class="small text-secondary mb-2" style="opacity: 0.8;">
+                            ${tool.description || 'No description available'}
+                        </div>
+                        <div class="tool-meta">
+                            <small class="text-secondary">Status: 
+                                <span class="badge ${tool.on_status === 'Online' ? 'bg-success-subtle text-success' : 'bg-secondary text-white-50'} border border-opacity-25 ${tool.on_status === 'Online' ? 'border-success' : 'border-secondary'}">
+                                    ${tool.on_status === 'Online' ? 'ACTIVE' : tool.on_status === 'Predefined' ? 'SYSTEM' : 'OFFLINE'}
+                                </span>
+                            </small>
                         </div>
                     </div>
-                `;
+                </div>
+            </div>
+        `;
             });
 
             checkboxesHtml += '</div>';
@@ -791,11 +794,11 @@ const AgentCreator = (function () {
 
             // Early return conditions with template literals stored as constants
             const NO_TOOLS_TEMPLATE = `
-                <div class="alert alert-info">
-                    <i class="bi bi-info-circle"></i>
-                    No available tools found. Please wait for tools to load or check your connection.
-                </div>
-            `;
+        <div class="alert bg-dark border border-secondary text-info d-flex align-items-center mb-3">
+            <i class="bi bi-info-circle me-2"></i>
+            <div>No available tools found. Please wait for tools to load or check your connection.</div>
+        </div>
+    `;
 
             const LOADING_TEMPLATE = `
                 <div class="loading-indicator">
@@ -844,35 +847,42 @@ const AgentCreator = (function () {
             // Create a template function for tool HTML
             const createToolHTML = (tool, isChecked) => {
                 const div = document.createElement('div');
-                div.className = 'form-check mb-2 agent-tool-checkbox-item';
+                // Column layout for grid inside the container
+                div.className = 'col-12';
                 div.dataset.agentIndex = agentIndex;
                 div.dataset.toolName = tool.name.toLowerCase();
                 div.dataset.toolId = tool.tool_id;
 
                 div.innerHTML = `
-                    <div class="d-flex align-items-start p-2">
-                        <input class="form-check-input agent-tool-checkbox me-3" 
-                               type="checkbox" 
-                               value="${tool.tool_id}" 
-                               id="agent-${agentIndex}-tool-${tool.tool_id}"
-                               data-agent-index="${agentIndex}"
-                               style="min-width: 20px; margin-top: 4px;"
-                               ${isChecked ? 'checked' : ''}>
-                        <div class="flex-grow-1">
-                            <label class="form-check-label" for="agent-${agentIndex}-tool-${tool.tool_id}">
-                                <span class="fw-bold">${tool.name}</span>
-                            </label>
-                            <p class="mb-1 small text-muted">${tool.description || 'No description available'}</p>
-                            <div class="tool-meta">
-                                <small class="text-muted">Status: 
-                                    <span class="badge ${tool.on_status === 'Online' ? 'bg-success' : tool.on_status === 'Predefined' ? 'bg-info' : tool.on_status === 'Offline' ? 'bg-warning' : 'bg-danger'}">
-                                        ${tool.on_status === 'Online' ? 'Active' : tool.on_status === 'Predefined' ? 'Clone to Use Predefined Tools' : tool.on_status === 'Offline' ? 'Offline' : 'Inactive'}
-                                    </span>
-                                </small>
-                            </div>
-                        </div>
+            <div class="form-check p-2 border rounded d-flex align-items-center justify-content-between position-relative tool-card-select ${isChecked ? 'selected' : ''}" 
+                 style="background: rgba(255,255,255,0.02); border-color: ${isChecked ? 'var(--q-cyan)' : 'var(--border-color)'} !important; transition: all 0.2s;">
+                 
+                <div class="d-flex align-items-center flex-grow-1" style="min-width: 0;">
+                    <input class="form-check-input agent-tool-checkbox me-3 flex-shrink-0" 
+                           type="checkbox" 
+                           value="${tool.tool_id}" 
+                           id="agent-${agentIndex}-tool-${tool.tool_id}"
+                           data-agent-index="${agentIndex}"
+                           style="border-color: var(--q-cyan);"
+                           ${isChecked ? 'checked' : ''}>
+                           
+                    <div class="flex-grow-1" style="min-width: 0;">
+                        <label class="form-check-label d-block text-truncate fw-bold text-white small" for="agent-${agentIndex}-tool-${tool.tool_id}">
+                            ${tool.name}
+                        </label>
+                        <p class="mb-0 text-secondary text-truncate small" style="font-size: 0.75rem; opacity: 0.7;">
+                            ${tool.description || 'No description available'}
+                        </p>
                     </div>
-                `;
+                </div>
+
+                <div class="ms-2 flex-shrink-0">
+                    <span class="badge ${tool.on_status === 'Online' ? 'bg-success-subtle text-success' : 'bg-secondary text-white-50'} border border-opacity-25 ${tool.on_status === 'Online' ? 'border-success' : 'border-secondary'}" style="font-size: 0.65rem;">
+                         ${tool.on_status === 'Online' ? 'ON' : 'OFF'}
+                    </span>
+                </div>
+            </div>
+        `;
                 return div;
             };
 

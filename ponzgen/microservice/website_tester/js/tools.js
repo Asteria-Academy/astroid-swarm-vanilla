@@ -367,44 +367,44 @@ function addVersionField(version = { version: '1.0.0', released: { env: {}, args
     const requiredEnvJson = JSON.stringify(releasedData.required_env || [], null, 2);
 
     const versionDiv = document.createElement('div');
-    versionDiv.className = 'card mb-3 version-row';
+    versionDiv.className = 'card mb-3 version-row border-secondary bg-transparent';
     versionDiv.innerHTML = `
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <h6 class="mb-0">Version</h6>
-            <button type="button" class="btn btn-sm btn-outline-danger remove-version">Remove</button>
+        <div class="card-header d-flex justify-content-between align-items-center border-secondary bg-dark bg-opacity-50">
+            <h6 class="mb-0 text-white"><i class="bi bi-layers me-2" style="color: var(--q-magenta);"></i>Version Iteration</h6>
+            <button type="button" class="btn btn-sm btn-outline-danger remove-version border-0"><i class="bi bi-trash"></i></button>
         </div>
         <div class="card-body">
             <div class="row mb-3">
                 <div class="col-md-6">
-                    <label class="form-label">Version Number</label>
-                    <input type="text" class="form-control version-number" placeholder="Version (e.g., 1.0.0)" value="${version.version || '1.0.0'}">
+                    <label class="form-label text-white-50 small text-uppercase">Version Number</label>
+                    <input type="text" class="form-control bg-dark text-white border-secondary version-number" placeholder="e.g., 1.0.0" value="${version.version || '1.0.0'}">
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label">Method</label>
-                    <input type="text" class="form-control version-method" value="sse" readonly>
-                    <small class="form-text text-muted">Currently only SSE is supported</small>
-                </div>
-            </div>
-            <div class="row mb-3">
-                <div class="col-md-6">
-                    <label class="form-label">Args</label>
-                    <input type="text" class="form-control version-args" placeholder="Command arguments" value="${releasedData.args || ''}">
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label">Port</label>
-                    <input type="text" class="form-control version-port" placeholder="Port number" value="${releasedData.port || 'The port number will be assigned automatically.'}" disabled>
+                    <label class="form-label text-white-50 small text-uppercase">Method</label>
+                    <input type="text" class="form-control bg-dark text-white border-secondary version-method" value="sse" readonly>
+                    <small class="form-text text-white-50" style="font-size: 0.7rem;">Currently only SSE is supported</small>
                 </div>
             </div>
             <div class="row mb-3">
                 <div class="col-md-6">
-                    <label class="form-label">Environment Variables (JSON)</label>
-                    <textarea class="form-control version-env" rows="4" placeholder='{"API_KEY": "your-api-key"}'>${envJson}</textarea>
-                    <small class="form-text text-muted">Enter as JSON object</small>
+                    <label class="form-label text-white-50 small text-uppercase">Args</label>
+                    <input type="text" class="form-control bg-dark text-white border-secondary version-args" placeholder="Command arguments" value="${releasedData.args || ''}">
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label">Required Environment Variables (JSON)</label>
-                    <textarea class="form-control version-required-env" rows="4" placeholder='["API_KEY"]'>${requiredEnvJson}</textarea>
-                    <small class="form-text text-muted">Enter as JSON array</small>
+                    <label class="form-label text-white-50 small text-uppercase">Port</label>
+                    <input type="text" class="form-control bg-dark text-white-50 border-secondary version-port" placeholder="Port number" value="${releasedData.port || 'Auto-assigned by System'}" disabled>
+                </div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label text-white-50 small text-uppercase">Env Vars (JSON)</label>
+                    <textarea class="form-control bg-dark text-white border-secondary version-env" rows="4" placeholder='{"API_KEY": "..."}'>${envJson}</textarea>
+                    <small class="form-text opacity-75" style="font-size: 0.7rem; color: var(--q-magenta);">* Enter as valid JSON object</small>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label text-white-50 small text-uppercase">Required Env (JSON Array)</label>
+                    <textarea class="form-control bg-dark text-white border-secondary version-required-env" rows="4" placeholder='["API_KEY"]'>${requiredEnvJson}</textarea>
+                    <small class="form-text opacity-75" style="font-size: 0.7rem; color: var(--q-magenta);">* Enter as valid JSON array</small>
                 </div>
             </div>
         </div>

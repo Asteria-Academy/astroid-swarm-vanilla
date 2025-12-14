@@ -4,12 +4,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ponzgen Swarm Intelligence</title>
+    <title>Swarm Intelligence</title>
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap"
-        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Custom CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
@@ -29,7 +28,7 @@
         body {
             background-color: var(--bg-dark);
             color: var(--text-primary);
-            font-family: 'Space Grotesk', sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             height: 100vh;
             overflow: hidden;
             /* Prevent scrolling for the full-screen layout */
@@ -91,11 +90,30 @@
             text-transform: uppercase;
             letter-spacing: -2px;
             margin-bottom: 1rem;
-            /* CMY Gradient Text */
-            background: linear-gradient(to right, var(--c-cyan), var(--c-magenta), var(--c-yellow));
+            /* Animated CMY Gradient Text */
+            background: linear-gradient(90deg,
+                    var(--c-cyan) 0%,
+                    var(--c-magenta) 33%,
+                    var(--c-yellow) 66%,
+                    var(--c-cyan) 100%);
+            background-size: 200% 100%;
             -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
-            text-shadow: 0 0 30px rgba(255, 0, 255, 0.3);
+            animation: gradientShift 4s ease-in-out infinite;
+            filter: drop-shadow(0 0 20px rgba(0, 255, 255, 0.4)) drop-shadow(0 0 40px rgba(255, 0, 255, 0.3)) drop-shadow(0 0 60px rgba(255, 255, 0, 0.2));
+        }
+
+        @keyframes gradientShift {
+
+            0%,
+            100% {
+                background-position: 0% 50%;
+            }
+
+            50% {
+                background-position: 100% 50%;
+            }
         }
 
         p.swarm-subtitle {
@@ -301,26 +319,26 @@
                 </a>
 
                 <a href="tools.html" class="feature-card card-tools">
-                    <div class="feature-icon"><i class="bi bi-tools"></i></div>
+                    <div class="feature-icon" for><i class="bi bi-tools"></i></div>
                     <div class="feature-info">
-                        <h3>Tools</h3>
-                        <p>Function calling & capabilities</p>
+                        <h3>MCP</h3>
+                        <p>Model Context Protocol for your agents</p>
                     </div>
                 </a>
 
                 <a href="agent-creator.html" class="feature-card card-creator">
                     <div class="feature-icon"><i class="bi bi-stars"></i></div>
                     <div class="feature-info">
-                        <h3>Agent Creator</h3>
-                        <p>Natural language generation</p>
+                        <h3>Agent Studio</h3>
+                        <p>Low-code - Create and save agent in single prompt</p>
                     </div>
                 </a>
 
                 <a href="agent-invoke-stream.html" class="feature-card card-stream">
                     <div class="feature-icon"><i class="bi bi-terminal"></i></div>
                     <div class="feature-info">
-                        <h3>Stream Invoke</h3>
-                        <p>Real-time debugger</p>
+                        <h3>Agent Invoke Stream</h3>
+                        <p>Chat with your agent to test your Swarm</p>
                     </div>
                 </a>
             </div>
@@ -354,7 +372,7 @@
         <div class="visuals-panel">
             <div id="canvas-container"></div>
             <div class="overlay-text">
-                <h1 class="swarm-title">PONZGEN<br>SWARM<br>INTEL</h1>
+                <h1 class="swarm-title">AMADEUS</h1>
                 <p class="swarm-subtitle">AUTONOMOUS MULTI-AGENT SYSTEM</p>
             </div>
         </div>
@@ -474,9 +492,9 @@
             const particlesMesh = new THREE.Points(particlesGeometry, particlesMaterial);
             scene.add(particlesMesh);
 
-            // CORE: Glowing Magenta Center
+            // CORE: Glowing White Center (Atomic Nucleus)
             const coreGeo = new THREE.SphereGeometry(2, 32, 32);
-            const coreMat = new THREE.MeshBasicMaterial({ color: 0xFF00FF, wireframe: true });
+            const coreMat = new THREE.MeshBasicMaterial({ color: 0xFFFFFF, wireframe: true });
             const core = new THREE.Mesh(coreGeo, coreMat);
             scene.add(core);
 

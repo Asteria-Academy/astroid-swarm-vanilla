@@ -163,19 +163,38 @@ async function getAgentDetails(agentId) {
                         ${agentDetails.on_status ? 'Active' : 'Inactive'}
                     </span>
                 </p>
-                <p><strong>Tools:</strong> ${agentDetails.tools ? agentDetails.tools.length : 0} tools available</p>
+            <div class="card bg-transparent border-secondary text-white">
+                <div class="card-body">
+                    <h5 class="card-title">${agentDetails.agent_name}</h5>
+                    <p class="card-text">${agentDetails.description || 'No description'}</p>
+                    <p class="card-text"><strong>Style:</strong> ${agentDetails.agent_style || 'Default'}</p>
+                    <p class="card-text"><strong>Status:</strong> 
+                        <span class="badge bg-transparent border ${agentDetails.on_status ? 'border-white text-white' : 'border-secondary text-secondary'} rounded-0">
+                            ${agentDetails.on_status ? 'ACTIVE' : 'INACTIVE'}
+                        </span>
+                    </p>
+                    <p class="card-text"><strong>Tools:</strong> ${agentDetails.tools ? agentDetails.tools.length : 0} tools available</p>
+                </div>
             </div>
         `;
 
         // Add tool details if available
         if (agentDetails.tool_details && agentDetails.tool_details.length > 0) {
-            infoHtml += '<h6 class="mt-3">Tool Details:</h6><ul class="list-group">';
+            infoHtml += '<h6 class="mt-3">Tool Details:</h6><ul class="list-group list-group-flush">';
             agentDetails.tool_details.forEach(tool => {
                 infoHtml += `
-                    <li class="list-group-item">
-                        <strong>${tool.name}</strong> - ${tool.description || 'No description'}
-                    </li>
-                `;
+                <li class="list-group-item bg-transparent text-white border-top-0 border-end-0 border-start-0 border-secondary d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong class="text-white-50">${tool.name}</strong>
+                        <span class="text-secondary d-block">${tool.description || 'No description'}</span>
+                    </div>
+                    <div>
+                        <span class="badge bg-transparent border ${tool.on_status === 'Online' ? 'border-white text-white' : 'border-secondary text-secondary'} rounded-0">
+                            ${tool.on_status === 'Online' ? 'ON' : 'OFF'}
+                        </span>
+                    </div>
+                </li>
+            `;
             });
             infoHtml += '</ul>';
         }
@@ -203,16 +222,19 @@ async function getAgentInfo() {
     // If we already have the agent details, just display them again
     if (currentAgentDetails) {
         let infoHtml = `
-            <div class="alert alert-info">
-                <h5>${currentAgentDetails.agent_name}</h5>
-                <p>${currentAgentDetails.description || 'No description'}</p>
-                <p><strong>Style:</strong> ${currentAgentDetails.agent_style || 'Default'}</p>
-                <p><strong>Status:</strong> 
-                    <span class="badge ${currentAgentDetails.on_status ? 'bg-success' : 'bg-danger'}">
-                        ${currentAgentDetails.on_status ? 'Active' : 'Inactive'}
-                    </span>
-                </p>
-                <p><strong>Tools:</strong> ${currentAgentDetails.tools ? currentAgentDetails.tools.length : 0} tools available</p>
+            <div class="card bg-transparent border-secondary text-white p-3 mb-3">
+                <h5 class="fw-light border-bottom border-secondary pb-2 mb-2">${currentAgentDetails.agent_name}</h5>
+                <p class="small text-secondary mb-2">${currentAgentDetails.description || 'No description'}</p>
+                <div class="d-flex align-items-center gap-3 small">
+                    <div><strong>Style:</strong> ${currentAgentDetails.agent_style || 'Default'}</div>
+                    <div>
+                        <strong>Status:</strong> 
+                        <span class="badge bg-transparent border ${currentAgentDetails.on_status ? 'border-white text-white' : 'border-secondary text-secondary'} rounded-0">
+                            ${currentAgentDetails.on_status ? 'ACTIVE' : 'INACTIVE'}
+                        </span>
+                    </div>
+                    <div><strong>Tools:</strong> ${currentAgentDetails.tools ? currentAgentDetails.tools.length : 0}</div>
+                </div>
             </div>
         `;
         Utils.hideLoading('agent-info-container', infoHtml);
@@ -832,17 +854,17 @@ function processContentWithBuffering(token, tokenContainer) {
 // Render image content
 function renderImage(content) {
     if (!content.src) {
-        return '<div class="alert alert-warning">Invalid image: missing src</div>';
+        return '<div class="alert border-secondary text-white bg-transparent">Invalid image: missing src</div>';
     }
 
     const alt = content.alt || 'Image';
     const additionalInfo = content.additional ?
-        `<div class="mt-1 small text-muted">${JSON.stringify(content.additional)}</div>` : '';
+        `<div class="mt-1 small text-white-50">${JSON.stringify(content.additional)}</div>` : '';
 
     return `
         <div class="my-3 text-center">
-            <img src="${content.src}" alt="${alt}" class="img-fluid" style="max-width: 100%;">
-            <div class="mt-2 text-muted">${alt}</div>
+            <img src="${content.src}" alt="${alt}" class="img-fluid border border-secondary" style="max-width: 100%;">
+            <div class="mt-2 text-white-50 small">${alt}</div>
             ${additionalInfo}
         </div>
     `;
@@ -997,7 +1019,7 @@ function renderRecommendationChips(recommendations) {
         if (!text) return;
 
         const chip = document.createElement('button');
-        chip.className = 'btn btn-sm btn-outline-primary rounded-pill text-truncate';
+        chip.className = 'btn btn-sm btn-outline-light rounded-pill text-truncate';
         chip.style.maxWidth = '200px';
         chip.textContent = text;
         chip.title = text; // Tooltip for full text
