@@ -71,6 +71,7 @@
             color: #ffffff;
             text-transform: uppercase;
             margin-bottom: 1rem;
+            position: relative;
 
             /* Metallic effect */
             background: linear-gradient(180deg, #ffffff 0%, #e0e0e0 50%, #ffffff 100%);
@@ -81,6 +82,29 @@
             /* Rainbow animated glow */
             filter: drop-shadow(0 0 20px rgba(0, 255, 255, 0.8)) drop-shadow(0 0 40px rgba(255, 0, 255, 0.6)) drop-shadow(0 0 60px rgba(255, 255, 0, 0.4));
             animation: rainbowGlow 4s ease-in-out infinite;
+
+            /* Typing effect */
+            overflow: hidden;
+            border-right: 3px solid rgba(255, 255, 255, 0.8);
+            white-space: nowrap;
+            animation: typing 3s steps(7) 1s forwards, blink 0.75s step-end infinite, rainbowGlow 4s ease-in-out infinite;
+            width: 0;
+        }
+
+        @keyframes typing {
+            from {
+                width: 0;
+            }
+
+            to {
+                width: 100%;
+            }
+        }
+
+        @keyframes blink {
+            50% {
+                border-color: transparent;
+            }
         }
 
         @keyframes rainbowGlow {
@@ -176,6 +200,57 @@
             animation: bounce 2s ease-in-out infinite;
         }
 
+        /* Tech Stack Banner */
+        .tech-stack-banner {
+            margin-top: 2rem;
+            overflow: hidden;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 50px;
+            padding: 1rem 0;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .tech-stack-scroll {
+            display: flex;
+            align-items: center;
+            gap: 3rem;
+            animation: scrollTech 20s linear infinite;
+            white-space: nowrap;
+        }
+
+        .tech-stack-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.85rem;
+            letter-spacing: 0.1em;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+        }
+
+        .tech-logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #00FFFF, #FF00FF);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        @keyframes scrollTech {
+            0% {
+                transform: translateX(0);
+            }
+
+            100% {
+                transform: translateX(-50%);
+            }
+        }
+
         @keyframes bounce {
 
             0%,
@@ -248,6 +323,16 @@
             text-decoration: none;
             color: inherit;
             display: block;
+
+            /* Scroll animation */
+            opacity: 0;
+            transform: translateY(50px);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        }
+
+        .feature-card.visible {
+            opacity: 1;
+            transform: translateY(0);
         }
 
         .feature-card::before {
@@ -355,6 +440,16 @@
 
         .value-prop {
             text-align: center;
+
+            /* Scroll animation */
+            opacity: 0;
+            transform: translateY(50px);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        }
+
+        .value-prop.visible {
+            opacity: 1;
+            transform: translateY(0);
         }
 
         .value-prop-icon {
@@ -575,6 +670,54 @@
             <span id="auth-text">OFFLINE</span>
         </div>
 
+        <!-- Tech Stack Banner -->
+        <div class="tech-stack-banner">
+            <div class="tech-stack-scroll">
+                <!-- First set -->
+                <div class="tech-stack-item">
+                    <span class="tech-logo">⚡</span>
+                    <span>FastAPI</span>
+                </div>
+                <div class="tech-stack-item">
+                    <span class="tech-logo">🔌</span>
+                    <span>MCP</span>
+                </div>
+                <div class="tech-stack-item">
+                    <span class="tech-logo">🔗</span>
+                    <span>LangGraph</span>
+                </div>
+                <div class="tech-stack-item">
+                    <span class="tech-logo">⛓️</span>
+                    <span>LangChain</span>
+                </div>
+                <div class="tech-stack-item">
+                    <span class="tech-logo">✓</span>
+                    <span>Pydantic</span>
+                </div>
+                <!-- Duplicate set for seamless loop -->
+                <div class="tech-stack-item">
+                    <span class="tech-logo">⚡</span>
+                    <span>FastAPI</span>
+                </div>
+                <div class="tech-stack-item">
+                    <span class="tech-logo">🔌</span>
+                    <span>MCP</span>
+                </div>
+                <div class="tech-stack-item">
+                    <span class="tech-logo">🔗</span>
+                    <span>LangGraph</span>
+                </div>
+                <div class="tech-stack-item">
+                    <span class="tech-logo">⛓️</span>
+                    <span>LangChain</span>
+                </div>
+                <div class="tech-stack-item">
+                    <span class="tech-logo">✓</span>
+                    <span>Pydantic</span>
+                </div>
+            </div>
+        </div>
+
         <div class="scroll-indicator">
             <span>Explore</span>
             <i class="bi bi-chevron-down"></i>
@@ -596,7 +739,7 @@
                     <div class="feature-icon">
                         <i class="bi bi-robot"></i>
                     </div>
-                    <h3 class="feature-title">Agent Matrix</h3>
+                    <h3 class="feature-title">Agent Cluster</h3>
                     <p class="feature-description">
                         Manage and orchestrate autonomous AI agents. Create, configure, and deploy intelligent units
                         with custom tools, personalities, and capabilities.
@@ -610,7 +753,7 @@
                     <div class="feature-icon">
                         <i class="bi bi-tools"></i>
                     </div>
-                    <h3 class="feature-title">MCP Tool Registry</h3>
+                    <h3 class="feature-title">MCP Matrix</h3>
                     <p class="feature-description">
                         Model Context Protocol integration. Access 100+ pre-built tools or create custom capabilities
                         for your agents to interact with external systems.
@@ -638,7 +781,7 @@
                     <div class="feature-icon">
                         <i class="bi bi-terminal"></i>
                     </div>
-                    <h3 class="feature-title">Live Debugger</h3>
+                    <h3 class="feature-title">Invoke Stream</h3>
                     <p class="feature-description">
                         Real-time agent testing and debugging. Stream agent responses, monitor tool calls, and validate
                         swarm behavior before deployment.
@@ -654,7 +797,7 @@
     <!-- Value Propositions Section -->
     <section class="value-props-section">
         <div class="container">
-            <h2 class="section-title">Why Ponzgen?</h2>
+            <h2 class="section-title">Why Amadeus?</h2>
             <p class="section-subtitle">
                 Built for enterprises that demand scalability, reliability, and cutting-edge AI capabilities.
             </p>
@@ -819,67 +962,406 @@
             renderer.setPixelRatio(window.devicePixelRatio);
             container.appendChild(renderer.domElement);
 
-            // GEOMETRY: Icosahedron Swarm
-            const geometry = new THREE.IcosahedronGeometry(10, 2);
-            const wireframe = new THREE.WireframeGeometry(geometry);
-
-            // MATERIAL: Cyan tech lines
-            const lineMaterial = new THREE.LineBasicMaterial({ color: 0x00FFFF, transparent: true, opacity: 0.3 });
-            const sphere = new THREE.LineSegments(wireframe, lineMaterial);
-            scene.add(sphere);
-
-            // PARTICLES SWARM
-            const particlesGeometry = new THREE.BufferGeometry();
+            // PARTICLES SWARM with Intelligence (Bee/Ant Hive Behavior)
             const particlesCount = 700;
-            const posArray = new Float32Array(particlesCount * 3);
-            const colorsArray = new Float32Array(particlesCount * 3);
+            const particles = [];
 
-            const colorPalette = [
-                new THREE.Color(0x00FFFF), // Cyan
-                new THREE.Color(0xFF00FF), // Magenta
-                new THREE.Color(0xFFFF00)  // Yellow
-            ];
+            // Particle class with swarm intelligence
+            class Particle {
+                constructor() {
+                    this.position = new THREE.Vector3(
+                        (Math.random() - 0.5) * 100,
+                        (Math.random() - 0.5) * 100,
+                        (Math.random() - 0.5) * 100
+                    );
+                    this.velocity = new THREE.Vector3(
+                        (Math.random() - 0.5) * 0.5,
+                        (Math.random() - 0.5) * 0.5,
+                        (Math.random() - 0.5) * 0.5
+                    );
+                    this.acceleration = new THREE.Vector3();
+                    this.maxSpeed = 0.5;
+                    this.maxForce = 0.05;
 
-            for (let i = 0; i < particlesCount * 3; i += 3) {
-                posArray[i] = (Math.random() - 0.5) * 100;
-                posArray[i + 1] = (Math.random() - 0.5) * 100;
-                posArray[i + 2] = (Math.random() - 0.5) * 100;
+                    // Assign color from palette
+                    const colorPalette = [
+                        new THREE.Color(0x00FFFF), // Cyan
+                        new THREE.Color(0xFF00FF), // Magenta
+                        new THREE.Color(0xFFFF00)  // Yellow
+                    ];
+                    this.color = colorPalette[Math.floor(Math.random() * colorPalette.length)];
+                }
 
-                const color = colorPalette[Math.floor(Math.random() * colorPalette.length)];
-                colorsArray[i] = color.r;
-                colorsArray[i + 1] = color.g;
-                colorsArray[i + 2] = color.b;
+                // Flocking behaviors
+                flock(particles) {
+                    let separation = this.separate(particles);
+                    let alignment = this.align(particles);
+                    let cohesion = this.cohesion(particles);
+                    let avoidNucleus = this.avoidCenter();
+                    let avoidTesseract = this.avoidTesseract();
+
+                    // Weight the forces
+                    separation.multiplyScalar(1.5);
+                    alignment.multiplyScalar(1.0);
+                    cohesion.multiplyScalar(1.0);
+                    avoidNucleus.multiplyScalar(3.0); // Strong avoidance
+                    avoidTesseract.multiplyScalar(4.0); // Very strong tesseract repulsion
+
+                    // Apply forces
+                    this.applyForce(separation);
+                    this.applyForce(alignment);
+                    this.applyForce(cohesion);
+                    this.applyForce(avoidNucleus);
+                    this.applyForce(avoidTesseract);
+                }
+
+                applyForce(force) {
+                    this.acceleration.add(force);
+                }
+
+                // Separation: steer to avoid crowding
+                separate(particles) {
+                    let desiredSeparation = 5;
+                    let steer = new THREE.Vector3();
+                    let count = 0;
+
+                    for (let other of particles) {
+                        let d = this.position.distanceTo(other.position);
+                        if (d > 0 && d < desiredSeparation) {
+                            let diff = new THREE.Vector3().subVectors(this.position, other.position);
+                            diff.normalize();
+                            diff.divideScalar(d);
+                            steer.add(diff);
+                            count++;
+                        }
+                    }
+
+                    if (count > 0) {
+                        steer.divideScalar(count);
+                    }
+
+                    if (steer.length() > 0) {
+                        steer.normalize();
+                        steer.multiplyScalar(this.maxSpeed);
+                        steer.sub(this.velocity);
+                        steer.clampLength(0, this.maxForce);
+                    }
+
+                    return steer;
+                }
+
+                // Alignment: steer towards average heading
+                align(particles) {
+                    let neighborDist = 25;
+                    let sum = new THREE.Vector3();
+                    let count = 0;
+
+                    for (let other of particles) {
+                        let d = this.position.distanceTo(other.position);
+                        if (d > 0 && d < neighborDist) {
+                            sum.add(other.velocity);
+                            count++;
+                        }
+                    }
+
+                    if (count > 0) {
+                        sum.divideScalar(count);
+                        sum.normalize();
+                        sum.multiplyScalar(this.maxSpeed);
+                        let steer = new THREE.Vector3().subVectors(sum, this.velocity);
+                        steer.clampLength(0, this.maxForce);
+                        return steer;
+                    }
+
+                    return new THREE.Vector3();
+                }
+
+                // Cohesion: steer towards average position
+                cohesion(particles) {
+                    let neighborDist = 25;
+                    let sum = new THREE.Vector3();
+                    let count = 0;
+
+                    for (let other of particles) {
+                        let d = this.position.distanceTo(other.position);
+                        if (d > 0 && d < neighborDist) {
+                            sum.add(other.position);
+                            count++;
+                        }
+                    }
+
+                    if (count > 0) {
+                        sum.divideScalar(count);
+                        return this.seek(sum);
+                    }
+
+                    return new THREE.Vector3();
+                }
+
+                seek(target) {
+                    let desired = new THREE.Vector3().subVectors(target, this.position);
+                    desired.normalize();
+                    desired.multiplyScalar(this.maxSpeed);
+                    let steer = new THREE.Vector3().subVectors(desired, this.velocity);
+                    steer.clampLength(0, this.maxForce);
+                    return steer;
+                }
+
+                // Avoid nucleus center
+                avoidCenter() {
+                    let center = new THREE.Vector3(0, 0, 0);
+                    let distance = this.position.distanceTo(center);
+                    let avoidRadius = 15; // Keep particles at least 15 units away
+
+                    if (distance < avoidRadius) {
+                        let steer = new THREE.Vector3().subVectors(this.position, center);
+                        steer.normalize();
+                        steer.multiplyScalar(this.maxSpeed);
+                        steer.sub(this.velocity);
+                        steer.clampLength(0, this.maxForce * 2); // Stronger force
+                        return steer;
+                    }
+
+                    return new THREE.Vector3();
+                }
+
+                // Avoid tesseract boundary - gravitational repulsion
+                avoidTesseract() {
+                    let center = new THREE.Vector3(0, 0, 0);
+                    let distance = this.position.distanceTo(center);
+                    let tesseractRadius = 12; // Tesseract boundary (approximate)
+                    let repulsionZone = 18; // Start repulsion before reaching tesseract
+
+                    if (distance < repulsionZone && distance > tesseractRadius) {
+                        // Gravitational wave-like repulsion (inverse square law)
+                        let repulsionStrength = 1 / Math.pow(distance - tesseractRadius + 1, 2);
+                        let steer = new THREE.Vector3().subVectors(this.position, center);
+                        steer.normalize();
+                        steer.multiplyScalar(this.maxSpeed * repulsionStrength * 5);
+                        steer.sub(this.velocity);
+                        steer.clampLength(0, this.maxForce * 3);
+                        return steer;
+                    }
+
+                    return new THREE.Vector3();
+                }
+
+                update() {
+                    this.velocity.add(this.acceleration);
+                    this.velocity.clampLength(0, this.maxSpeed);
+                    this.position.add(this.velocity);
+                    this.acceleration.multiplyScalar(0);
+
+                    // Wrap around edges
+                    if (this.position.x > 50) this.position.x = -50;
+                    if (this.position.x < -50) this.position.x = 50;
+                    if (this.position.y > 50) this.position.y = -50;
+                    if (this.position.y < -50) this.position.y = 50;
+                    if (this.position.z > 50) this.position.z = -50;
+                    if (this.position.z < -50) this.position.z = 50;
+                }
             }
 
-            particlesGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
-            particlesGeometry.setAttribute('color', new THREE.BufferAttribute(colorsArray, 3));
+            // Create particles
+            for (let i = 0; i < particlesCount; i++) {
+                particles.push(new Particle());
+            }
 
-            const particlesMaterial = new THREE.PointsMaterial({
-                size: 0.5,
-                vertexColors: true,
-                transparent: true,
-                opacity: 0.8,
-                blending: THREE.AdditiveBlending
+            // Create binary digit textures (0 and 1) with glow
+            const createBinaryTexture = (digit, color) => {
+                const canvas = document.createElement('canvas');
+                canvas.width = 128;
+                canvas.height = 128;
+                const ctx = canvas.getContext('2d');
+
+                // Clear canvas
+                ctx.fillStyle = 'rgba(255, 255, 255, 0)';
+                ctx.fillRect(0, 0, 128, 128);
+
+                // Add glow effect
+                ctx.shadowBlur = 20;
+                ctx.shadowColor = color;
+
+                // Draw digit multiple times for stronger glow
+                ctx.font = 'bold 80px monospace';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillStyle = color;
+
+                // Multiple passes for glow
+                for (let i = 0; i < 3; i++) {
+                    ctx.fillText(digit, 64, 64);
+                }
+
+                // Final sharp text on top
+                ctx.shadowBlur = 0;
+                ctx.fillStyle = '#ffffff';
+                ctx.fillText(digit, 64, 64);
+
+                const texture = new THREE.CanvasTexture(canvas);
+                return texture;
+            };
+
+            // Create textures for each color
+            const textures = {
+                cyan: {
+                    zero: createBinaryTexture('0', '#00FFFF'),
+                    one: createBinaryTexture('1', '#00FFFF')
+                },
+                magenta: {
+                    zero: createBinaryTexture('0', '#FF00FF'),
+                    one: createBinaryTexture('1', '#FF00FF')
+                },
+                yellow: {
+                    zero: createBinaryTexture('0', '#FFFF00'),
+                    one: createBinaryTexture('1', '#FFFF00')
+                }
+            };
+
+            // Create sprite group for particles
+            const particleGroup = new THREE.Group();
+            scene.add(particleGroup);
+
+            // Create sprites for each particle
+            particles.forEach((particle, index) => {
+                // Determine color type
+                let colorType;
+                if (particle.color.r === 0 && particle.color.g === 1 && particle.color.b === 1) {
+                    colorType = 'cyan';
+                } else if (particle.color.r === 1 && particle.color.g === 0 && particle.color.b === 1) {
+                    colorType = 'magenta';
+                } else {
+                    colorType = 'yellow';
+                }
+
+                // Random 0 or 1
+                const isOne = Math.random() > 0.5;
+                const texture = isOne ? textures[colorType].one : textures[colorType].zero;
+
+                const spriteMaterial = new THREE.SpriteMaterial({
+                    map: texture,
+                    transparent: true,
+                    opacity: 0.9,
+                    blending: THREE.AdditiveBlending
+                });
+
+                const sprite = new THREE.Sprite(spriteMaterial);
+                sprite.scale.set(1, 1, 1); // Smaller size to prevent zoom issues
+                sprite.position.copy(particle.position);
+                particleGroup.add(sprite);
+
+                // Store sprite reference in particle
+                particle.sprite = sprite;
             });
 
-            const particlesMesh = new THREE.Points(particlesGeometry, particlesMaterial);
-            scene.add(particlesMesh);
+            // TESSERACT: 4D Hypercube Nucleus
+            // Define 4D tesseract vertices (16 vertices of a hypercube)
+            const tesseractVertices4D = [
+                [-1, -1, -1, -1], [1, -1, -1, -1], [1, 1, -1, -1], [-1, 1, -1, -1],
+                [-1, -1, 1, -1], [1, -1, 1, -1], [1, 1, 1, -1], [-1, 1, 1, -1],
+                [-1, -1, -1, 1], [1, -1, -1, 1], [1, 1, -1, 1], [-1, 1, -1, 1],
+                [-1, -1, 1, 1], [1, -1, 1, 1], [1, 1, 1, 1], [-1, 1, 1, 1]
+            ];
 
-            // CORE: Glowing White Center (Atomic Nucleus) - Smaller with Glow
-            const coreGeo = new THREE.SphereGeometry(0.8, 32, 32);
-            const coreMat = new THREE.MeshStandardMaterial({
+            // Define edges connecting vertices
+            const tesseractEdges = [
+                // Inner cube (w=-1)
+                [0, 1], [1, 2], [2, 3], [3, 0], [4, 5], [5, 6], [6, 7], [7, 4], [0, 4], [1, 5], [2, 6], [3, 7],
+                // Outer cube (w=1)
+                [8, 9], [9, 10], [10, 11], [11, 8], [12, 13], [13, 14], [14, 15], [15, 12], [8, 12], [9, 13], [10, 14], [11, 15],
+                // Connections between cubes
+                [0, 8], [1, 9], [2, 10], [3, 11], [4, 12], [5, 13], [6, 14], [7, 15]
+            ];
+
+            // Project 4D point to 3D
+            const project4Dto3D = (point4D, distance = 3) => {
+                const w = point4D[3];
+                const scale = distance / (distance - w);
+                return new THREE.Vector3(
+                    point4D[0] * scale * 5, // Increased from 2 to 5 for larger size
+                    point4D[1] * scale * 5,
+                    point4D[2] * scale * 5
+                );
+            };
+
+            // Rotate in 4D space
+            const rotate4D = (point, angleXY, angleXZ, angleXW, angleYZ, angleYW, angleZW) => {
+                let [x, y, z, w] = point;
+
+                // XY rotation
+                let newX = x * Math.cos(angleXY) - y * Math.sin(angleXY);
+                let newY = x * Math.sin(angleXY) + y * Math.cos(angleXY);
+                x = newX; y = newY;
+
+                // XZ rotation
+                newX = x * Math.cos(angleXZ) - z * Math.sin(angleXZ);
+                let newZ = x * Math.sin(angleXZ) + z * Math.cos(angleXZ);
+                x = newX; z = newZ;
+
+                // XW rotation
+                newX = x * Math.cos(angleXW) - w * Math.sin(angleXW);
+                let newW = x * Math.sin(angleXW) + w * Math.cos(angleXW);
+                x = newX; w = newW;
+
+                // YZ rotation
+                newY = y * Math.cos(angleYZ) - z * Math.sin(angleYZ);
+                newZ = y * Math.sin(angleYZ) + z * Math.cos(angleYZ);
+                y = newY; z = newZ;
+
+                // YW rotation
+                newY = y * Math.cos(angleYW) - w * Math.sin(angleYW);
+                newW = y * Math.sin(angleYW) + w * Math.cos(angleYW);
+                y = newY; w = newW;
+
+                // ZW rotation
+                newZ = z * Math.cos(angleZW) - w * Math.sin(angleZW);
+                newW = z * Math.sin(angleZW) + w * Math.cos(angleZW);
+                z = newZ; w = newW;
+
+                return [x, y, z, w];
+            };
+
+            // Create line geometry for tesseract
+            const tesseractGroup = new THREE.Group();
+            const tesseractLines = [];
+
+            tesseractEdges.forEach(edge => {
+                const geometry = new THREE.BufferGeometry();
+                const positions = new Float32Array(6); // 2 vertices * 3 coordinates
+                geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+                const material = new THREE.LineBasicMaterial({
+                    color: 0x00FFFF, // Cyan tesseract
+                    transparent: true,
+                    opacity: 0.6,
+                    linewidth: 2
+                });
+
+                const line = new THREE.Line(geometry, material);
+                tesseractGroup.add(line);
+                tesseractLines.push({ line, edge });
+            });
+
+            scene.add(tesseractGroup);
+
+            // Add small glowing white nucleus sphere
+            const nucleusGeo = new THREE.SphereGeometry(0.5, 32, 32);
+            const nucleusMat = new THREE.MeshStandardMaterial({
                 color: 0xFFFFFF,
                 emissive: 0xFFFFFF,
-                emissiveIntensity: 1,
-                wireframe: true
+                emissiveIntensity: 2
             });
-            const core = new THREE.Mesh(coreGeo, coreMat);
-            scene.add(core);
+            const nucleus = new THREE.Mesh(nucleusGeo, nucleusMat);
+            scene.add(nucleus);
 
             // Add point light for glow effect
             const coreLight = new THREE.PointLight(0xFFFFFF, 2, 50);
             coreLight.position.set(0, 0, 0);
             scene.add(coreLight);
+
+            // Animation angles for 4D rotation
+            let angleXY = 0, angleXZ = 0, angleXW = 0;
+            let angleYZ = 0, angleYW = 0, angleZW = 0;
 
             // ANIMATION LOOP
             let mouseX = 0;
@@ -893,23 +1375,61 @@
             const animate = () => {
                 requestAnimationFrame(animate);
 
-                // Rotate Sphere
-                sphere.rotation.x += 0.001;
-                sphere.rotation.y += 0.002;
-
-                // Expand/Contract Sphere "Breathing"
+                // Expand/Contract Sphere "Breathing" - removed, only tesseract now
                 const time = Date.now() * 0.001;
-                const scale = 1 + Math.sin(time) * 0.1;
-                sphere.scale.set(scale, scale, scale);
 
-                // Move Particles "Swarm" style
-                particlesMesh.rotation.y = -mouseX * 0.5;
-                particlesMesh.rotation.x = -mouseY * 0.5;
-                particlesMesh.rotation.z += 0.0005;
+                // Update swarm intelligence particles
+                for (let i = 0; i < particles.length; i++) {
+                    particles[i].flock(particles);
+                    particles[i].update();
 
-                // Core Rotation
-                core.rotation.x -= 0.01;
-                core.rotation.y -= 0.01;
+                    // Update sprite position
+                    if (particles[i].sprite) {
+                        particles[i].sprite.position.copy(particles[i].position);
+                    }
+                }
+
+                // Mouse interaction with particle group
+                particleGroup.rotation.y = -mouseX * 0.2;
+                particleGroup.rotation.x = -mouseY * 0.2;
+
+                // Tesseract 4D Rotation Animation
+                angleXY += 0.005;
+                angleXZ += 0.003;
+                angleXW += 0.007;
+                angleYZ += 0.004;
+                angleYW += 0.006;
+                angleZW += 0.002;
+
+                // Update tesseract vertices and edges
+                tesseractLines.forEach(({ line, edge }) => {
+                    const [startIdx, endIdx] = edge;
+
+                    // Rotate vertices in 4D
+                    const rotatedStart = rotate4D(
+                        tesseractVertices4D[startIdx],
+                        angleXY, angleXZ, angleXW, angleYZ, angleYW, angleZW
+                    );
+                    const rotatedEnd = rotate4D(
+                        tesseractVertices4D[endIdx],
+                        angleXY, angleXZ, angleXW, angleYZ, angleYW, angleZW
+                    );
+
+                    // Project to 3D
+                    const start3D = project4Dto3D(rotatedStart);
+                    const end3D = project4Dto3D(rotatedEnd);
+
+                    // Update line positions
+                    const positions = line.geometry.attributes.position.array;
+                    positions[0] = start3D.x;
+                    positions[1] = start3D.y;
+                    positions[2] = start3D.z;
+                    positions[3] = end3D.x;
+                    positions[4] = end3D.y;
+                    positions[5] = end3D.z;
+
+                    line.geometry.attributes.position.needsUpdate = true;
+                });
 
                 renderer.render(scene, camera);
             };
@@ -925,6 +1445,28 @@
                 camera.updateProjectionMatrix();
             });
         };
+
+        // Scroll Animation Observer
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach((entry, index) => {
+                if (entry.isIntersecting) {
+                    // Stagger animation for multiple cards
+                    setTimeout(() => {
+                        entry.target.classList.add('visible');
+                    }, index * 100);
+                }
+            });
+        }, observerOptions);
+
+        // Observe all feature cards and value props
+        document.querySelectorAll('.feature-card, .value-prop').forEach(card => {
+            observer.observe(card);
+        });
 
         initThree();
     </script>
