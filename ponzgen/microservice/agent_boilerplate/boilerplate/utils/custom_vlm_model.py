@@ -376,6 +376,26 @@ class CustomVLMLLM(LLM):
         except Exception as e:
             return f"Error during inference: {str(e)}"
 
+    def bind_tools(self, tools: list, **kwargs):
+        """
+        Bind tools to the model (required for LangChain ReAct agents).
+        
+        This is a pass-through method since our custom VLM doesn't natively support
+        tool calling like OpenAI models. The actual tool invocation is handled by
+        the ReAct agent framework, not the model itself.
+        
+        Args:
+            tools: List of tools to bind
+            **kwargs: Additional arguments
+            
+        Returns:
+            self (for method chaining)
+        """
+        # Store tools for reference (optional)
+        self._bound_tools = tools
+        # Return self to support method chaining
+        return self
+
 
 
 

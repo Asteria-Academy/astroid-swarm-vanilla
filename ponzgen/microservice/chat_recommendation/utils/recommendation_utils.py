@@ -50,6 +50,15 @@ def parse_recommendation_response(response: str) -> List[str]:
         List of recommendations
     """
     try:
+        # Strip markdown code blocks if present (```json ... ``` or ``` ... ```)
+        response = response.strip()
+        if response.startswith('```'):
+            # Remove opening ```json or ```
+            response = re.sub(r'^```(?:json)?\s*\n?', '', response)
+            # Remove closing ```
+            response = re.sub(r'\n?```\s*$', '', response)
+            response = response.strip()
+        
         # Sanitize content first
         response = sanitize_json_string(response)
         

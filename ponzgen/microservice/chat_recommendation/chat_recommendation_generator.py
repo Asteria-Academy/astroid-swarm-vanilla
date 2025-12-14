@@ -44,8 +44,19 @@ class ChatRecommendationGenerator:
         """
         Generate chat recommendations based on user input and chat history.
         """
-        if not user_input:
-            raise BadRequestError("User input cannot be empty")
+        # Handle image-only messages: use assistant's VLM response as context
+        if not user_input or user_input.strip() == '':
+            # Check if we have an assistant message with VLM analysis
+            if chat_history and len(chat_history) > 0:
+                last_message = chat_history[-1]
+                if isinstance(last_message, dict) and last_message.get('role') == 'assistant':
+                    user_input = last_message.get('content', '')
+                elif hasattr(last_message, 'role') and last_message.role == 'assistant':
+                    user_input = last_message.content
+            
+            # If still empty, skip recommendations
+            if not user_input or user_input.strip() == '':
+                return []
 
         try:
             # Extract messages from chat history if provided

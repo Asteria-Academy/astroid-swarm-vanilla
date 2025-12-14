@@ -102,10 +102,18 @@ class AgentBoilerplate:
         final_message = f"You are agent that follow this instruction: \n Query: {query}."
         
         # Add optional components if they exist and are valid
+        has_agent_style = False
         if agent_style_1 and agent_style_1 != "string":
             final_message += f"\nAgent Style or instruction: {agent_style_1}."
+            has_agent_style = True
         if agent_style_2 and agent_style_2 != "string":
-            final_message += f"\nAdditional Agent Style or instruction: {agent_style_1}."
+            final_message += f"\nAdditional Agent Style or instruction: {agent_style_2}."
+            has_agent_style = True
+        
+        # Add default system prompt if no agent style is provided
+        if not has_agent_style:
+            final_message += "\nAgent Style or instruction: You are a helpful AI assistant. Provide clear, concise, and accurate responses to user queries."
+        
         if context and context != "string":
             final_message += f"\nInformation / Context: {context}."
         

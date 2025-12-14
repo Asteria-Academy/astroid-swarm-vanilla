@@ -20,7 +20,31 @@ def get_react_agent(model_name="custom-vlm", temperature=0, langchain_tools=[], 
     """
     # model_name = "anthropic/claude-3.5-sonnet" # for tools, one of the most general model
     model = get_llms(model_name, temperature)
-    return create_react_agent(model, langchain_tools, checkpointer=memory)
+    
+    # Add system prompt to instruct the model to use tools
+    system_prompt = """You are a helpful AI assistant with access to tools.
+
+When the user asks you to perform actions like:
+- "list", "show", "get", "find", "search" → Use search/list tools
+- "create", "add", "make", "new" → Use create tools  
+- "update", "edit", "modify", "change" → Use update tools
+- "delete", "remove" → Use delete tools
+
+IMPORTANT: When you have tools available and the user's request matches a tool's capability, you MUST use the tool instead of just describing what you would do.
+
+For example:
+- "list linear issues" → Use the Linear search/list tool
+- "create an issue" → Use the Linear create issue tool
+- "hello" → Just respond conversatively (no tool needed)
+
+Always use tools when appropriate to provide accurate, real-time information."""
+    
+    return create_react_agent(
+        model, 
+        langchain_tools, 
+        checkpointer=memory,
+        state_modifier=system_prompt
+    )
 # Example usage
 if __name__ == "__main__":
     from langgraph.checkpoint.memory import MemorySaver
